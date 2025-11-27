@@ -6,17 +6,17 @@ import pymunk
 from pymunk import pygame_util
 
 from src.ui.image_manager import ImageManager
+from src.utils.constants import WINDOW_WIDTH, WINDOW_HEIGHT
 
-WIDTH, HEIGHT = 1200, 800
 FPS = 60
 GROUND_Y = 600
 MOTOR_RATE = 20
 
 pygame.init()
 
-ImageManager.load_all()
+#ImageManager.load_all()
 
-window = pygame.display.set_mode((WIDTH, HEIGHT))
+window = pygame.display.set_mode((WINDOW_WIDTH, WINDOW_HEIGHT))
 
 clock = pygame.time.Clock()
 draw_options = pygame_util.DrawOptions(window)
@@ -25,7 +25,7 @@ space = pymunk.Space()
 space.gravity = (0.0, 1200.0)
 
 static_body = space.static_body
-seg = pymunk.Segment(static_body, (0, GROUND_Y), (WIDTH, GROUND_Y), 2.0)
+seg = pymunk.Segment(static_body, (0, GROUND_Y), (WINDOW_WIDTH, GROUND_Y), 2.0)
 seg.friction = 1.0
 seg.elasticity = 0.0
 space.add(seg)
