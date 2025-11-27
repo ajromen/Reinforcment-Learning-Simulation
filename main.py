@@ -5,12 +5,16 @@ import pygame
 import pymunk
 from pymunk import pygame_util
 
+from src.ui.image_manager import ImageManager
+
 WIDTH, HEIGHT = 1200, 800
 FPS = 60
 GROUND_Y = 600
 MOTOR_RATE = 20
 
 pygame.init()
+
+ImageManager.load_all()
 
 window = pygame.display.set_mode((WIDTH, HEIGHT))
 
