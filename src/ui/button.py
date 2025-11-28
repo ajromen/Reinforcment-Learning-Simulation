@@ -10,8 +10,11 @@ class Button:
         self.image = image
         self.name = name
 
-    def show(self, window):
+    def check_show(self, window):
+        if InputHandler.check_mouse_hover(self.rect):
+            # window.blit
+            #add highlight when hovered or diferent image
+            window.blit(self.image, (self.pos[0], self.pos[1]))
+            return True
         window.blit(self.image, (self.pos[0], self.pos[1]))
-
-    def check_click(self):
-        return InputHandler.check_mouse_hover(self.rect)
+        return False

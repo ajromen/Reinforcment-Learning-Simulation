@@ -1,20 +1,23 @@
 import pygame
 
+
 class InputHandler:
     @staticmethod
-    def get_square(is_flipped=False, size=8):
-        mouse_pos = pygame.mouse.get_pos()
-        col = (mouse_pos[0] - 26) // 94
-        row = (mouse_pos[1] - 26) // 94
+    def coords_at_mouse():
+        x, y = pygame.mouse.get_pos()
+        mouse_pos = [x - 100, y]
+        if mouse_pos[0] <= 0: return None
 
-        if col < 0 or col >= size or row < 0 or row >= size:
-            return None, None
+        col = (mouse_pos[0]) // 32
+        row = (mouse_pos[1]) // 32
 
-        if is_flipped:
-            row = size - row - 1
-            col = size - col - 1
+        return col, row
 
-        return row, col
+    @staticmethod
+    def coords_to_pos(coords):
+        print(coords)
+        x, y = coords
+        return x * 32 + 100 + 20 - 4, y * 32 + 20 - 4
 
     @staticmethod
     def check_mouse_hover(rect):

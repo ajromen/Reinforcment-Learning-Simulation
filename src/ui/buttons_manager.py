@@ -11,11 +11,11 @@ class ButtonsManager:
 
     def create_creation_scene_buttons(self):
         select = Button(10, 10, *SMALL_BUTTON_DIMENSIONS, ImageManager.select_button, 'select')
-        # joint = Button(10, 100, *SMALL_BUTTON_DIMENSIONS, ImageManager.joint_button, 'joint')
-        bone = Button(10, 200, *SMALL_BUTTON_DIMENSIONS, ImageManager.bone_button, 'bone')
-        muscle = Button(10, 300, *SMALL_BUTTON_DIMENSIONS, ImageManager.muscle_button, 'muscle')
+        joint = Button(10, 100, *SMALL_BUTTON_DIMENSIONS, ImageManager.joint_button, 'joint')
+        bone = Button(10, 190, *SMALL_BUTTON_DIMENSIONS, ImageManager.bone_button, 'bone')
+        muscle = Button(10, 280, *SMALL_BUTTON_DIMENSIONS, ImageManager.muscle_button, 'muscle')
 
-        delete = Button(10, WINDOW_HEIGHT - 200, *SMALL_BUTTON_DIMENSIONS, ImageManager.delete_button, 'delete')
+        delete = Button(10, WINDOW_HEIGHT - 180, *SMALL_BUTTON_DIMENSIONS, ImageManager.delete_button, 'delete')
         clear = Button(10, WINDOW_HEIGHT - 90, *SMALL_BUTTON_DIMENSIONS, ImageManager.clear_button, 'clear')
 
         neural_network = Button(WINDOW_WIDTH - 90, 10, *SMALL_BUTTON_DIMENSIONS, ImageManager.neural_network_button,
@@ -23,12 +23,13 @@ class ButtonsManager:
         evolve = Button(WINDOW_WIDTH - 210, WINDOW_HEIGHT - 90, *LARGE_BUTTON_DIMENSIONS, ImageManager.evolve_button,
                         'evolve')
 
-        self.creation_scene_buttons = [select, muscle, bone, delete, clear, neural_network, evolve]
+        self.creation_scene_buttons = [select, muscle, joint, bone, delete, clear, neural_network, evolve]
 
     def show_check_creation_scene_buttons(self, clicked):
+        ret = None
         for button in self.creation_scene_buttons:
-            button.show(self.window)
-            if clicked:
-                action = button.check_click()
-                if action: return button.name
-        return None
+            action = button.check_show(self.window)
+            if clicked and action:
+                ret = button.name
+                clicked = False
+        return ret
