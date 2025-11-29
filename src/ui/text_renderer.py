@@ -2,6 +2,7 @@ import os
 
 import pygame
 
+
 class TextRenderer:
     fonts = {}
     path = "assets/JetBrainsMono-Regular.ttf"
@@ -15,7 +16,7 @@ class TextRenderer:
         return TextRenderer.fonts[size]
 
     @staticmethod
-    def render_text(text, size, color, pos, window):
+    def render_text(text: str, size: int, color: str, pos: tuple[float, float], window: pygame.Surface):
         font = TextRenderer.load_font(size)
         text_surface = font.render(text, True, color)
         window.blit(text_surface, pos)

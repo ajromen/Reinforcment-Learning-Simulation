@@ -1,7 +1,6 @@
-from src.ui.button import Button
+from src.ui.components.button import Button
 from src.ui.image_manager import ImageManager
 from src.utils.constants import WINDOW_HEIGHT, WINDOW_WIDTH, SMALL_BUTTON_DIMENSIONS, LARGE_BUTTON_DIMENSIONS
-from pygame import Rect
 
 
 class ButtonsManager:
