@@ -18,6 +18,9 @@ class Bone:
         self.joint2 = max(joint1, joint2)
         self.joint1.bones.append(self)
         self.joint2.bones.append(self)
+        self.midpoint = (joint1.coords[0]+ joint2.coords[0])/2, (joint1.coords[1]+ joint2.coords[1])/2
+
+        self.muscles = []
 
         self.selected = False
 
@@ -76,3 +79,6 @@ class Bone:
                 return True
 
         return False
+
+    def __lt__(self, other):
+        return int(self.id[1:]) < int(other.id[1:])

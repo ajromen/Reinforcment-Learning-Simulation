@@ -1,21 +1,28 @@
+import os
+import threading
+import tkinter as tk
+from tkinter import filedialog
 from typing import Dict
 
 import pygame
 
-from src.ui.components.bone import Bone
+from src.models.creature import Creature
 from src.ui import colors
 from src.ui.buttons_manager import ButtonsManager
+from src.ui.components.bone import Bone
 from src.ui.components.joint import Joint
+from src.ui.components.muscle import Muscle
 from src.ui.image_manager import ImageManager
 from src.ui.input_handler import InputHandler
 from src.ui.text_renderer import TextRenderer
 from src.utils.constants import WINDOW_HEIGHT, FPS
+from src.utils.creature_loader import CreatureLoader
 
 
 class CreationScene:
     def __init__(self, window):
         self.bones: Dict[str, Bone] = {}
-        self.muscles: Dict[str, Joint] = {}
+        self.muscles: Dict[str, Muscle] = {}
         self.joints: Dict[str, Joint] = {}
         self.window = window
         self.mode = "select"  # select,muscle,joint,bone
@@ -38,12 +45,11 @@ class CreationScene:
             "evolve": self.evolve,
             "neural_network": self.neural_network_button,
             "clear": self.clear,
+            "load": self.load,
+            "save": self.save
         }
 
-    def start(self, preload=''):
-        if preload != '':
-            pass  # load creature
-
+    def start(self):
         clock = pygame.time.Clock()
 
         running = True
@@ -61,9 +67,6 @@ class CreationScene:
             if action:
                 self.mode = action
                 self.mode_func = self.mode_names.get(action, lambda: print("Nije pronadjen mod"))
-            # elif clicked:
-            #     location = InputHandler.coords_at_mouse()
-            #     if location: pos = InputHandler.coords_to_pos(location)
 
             self.mode_func(clicked)
 
@@ -77,14 +80,17 @@ class CreationScene:
         self.draw_grid()
         rect_area = pygame.Rect(0, 0, 100, WINDOW_HEIGHT)
         pygame.draw.rect(self.window, colors.background_secondary, rect_area)
-        action = self.buttons.show_check_creation_scene_buttons(clicked)
+        action = self.buttons.show_check_creation_scene_buttons(clicked, self.mode)
 
         # joints muscles and bones
         if self.mode == "bone" and self.last_selected is not None and self.last_selected.id[0] == 'j':
             Bone.follow_mouse(self.last_selected.coords, self.window)
 
+        if self.mode == "muscle" and self.last_selected is not None and self.last_selected.id[0] == 'b':
+            Muscle.follow_mouse(self.last_selected.midpoint, self.window)
+
         for muscle in self.muscles.values():
-            pass
+            muscle.show(self.window)
 
         for bone in self.bones.values():
             bone.show(self.window)
@@ -98,7 +104,8 @@ class CreationScene:
         if self.last_selected:
             TextRenderer.render_text("Selected id: " + str(self.last_selected.id), 13, "#ffffff", (100, 720),
                                      self.window)
-        TextRenderer.render_text("Current Mode: " + str(self.mode_func.__name__), 13, "#ffffff", (100, 760), self.window)
+        TextRenderer.render_text("Current Mode: " + str(self.mode_func.__name__), 13, "#ffffff", (100, 760),
+                                 self.window)
         return action
 
     def unselect(self):
@@ -116,18 +123,25 @@ class CreationScene:
 
         self.unselect()
 
-        #joints
+        # joints
         for joint in self.joints.values():
             if joint.check_click():
                 joint.selected = True
                 self.last_selected = joint
                 return
 
-        #bones
+        # bones
         for bone in self.bones.values():
             if bone.check_click():
                 bone.selected = True
                 self.last_selected = bone
+                return
+
+        # bones
+        for muscle in self.muscles.values():
+            if muscle.check_click():
+                muscle.selected = True
+                self.last_selected = muscle
                 return
 
     def joint_mode(self, clicked):
@@ -161,7 +175,7 @@ class CreationScene:
 
         for joint in self.joints.values():
             if joint.check_click():
-                if Bone.check_if_exists(self.last_selected, joint,self.bones.values()): return
+                if Bone.check_if_exists(self.last_selected, joint, self.bones.values()): return
                 if self.last_selected == joint:
                     self.unselect()
                     return
@@ -173,13 +187,36 @@ class CreationScene:
                 return
 
     def muscle_mode(self, clicked):
-        pass
+        if not clicked: return
+
+        if self.last_selected and self.last_selected.id[0] != "b":
+            self.unselect()
+
+        if self.last_selected is None:
+            for bone in self.bones.values():
+                if bone.check_click():
+                    bone.selected = True
+                    self.last_selected = bone
+                    return
+            return
+
+        for bone in self.bones.values():
+            if bone.check_click():
+                if Muscle.check_if_exists(self.last_selected, bone, self.muscles.values()): return
+                if self.last_selected == bone:
+                    self.unselect()
+                    return
+                id = "m" + str(self.muscle_num)
+                self.muscle_num += 1
+                m = Muscle(id, self.last_selected, bone)
+                self.unselect()
+                self.muscles[id] = m
+                return
 
     def delete_mode(self, clicked):
         if not clicked: return
         if self.last_selected is None:
-            self.mode = 'select'
-            self.mode_func = self.select_mode
+            self.switch_to_select()
             return
 
         id: str = self.last_selected.id
@@ -198,26 +235,121 @@ class CreationScene:
 
             del self.joints[id]
         if part == 'm':
-            del (self.muscles[id])
+            muscle = self.muscles[id]
+
+            muscle.bone1.muscles = [m for m in muscle.bone1.muscles if m != muscle]
+            muscle.bone2.muscles = [m for m in muscle.bone2.muscles if m != muscle]
+
+            del self.muscles[id]
         if part == 'b':
             bone = self.bones[id]
 
             bone.joint1.bones = [b for b in bone.joint1.bones if b != bone]
             bone.joint2.bones = [b for b in bone.joint2.bones if b != bone]
 
+            to_delete = []
+            for muscle_id, muscle in self.muscles.items():
+                if muscle.bone1 == bone or muscle.bone2 == bone:
+                    to_delete.append(muscle_id)
+
+            for muscle_id in to_delete:
+                del self.muscles[muscle_id]
+
             del self.bones[id]
 
-
-        self.mode = 'select'
-        self.mode_func = self.select_mode
+        self.switch_to_select()
 
     def evolve(self, clicked):
         pass
 
     def neural_network_button(self, clicked):
-        pass
+        self.switch_to_select()
 
-    def clear(self, clicked):
+    def load(self, _=None):
+        def get_file_dialog(callback):
+            def thread_func():
+                root = tk.Tk()
+                root.withdraw()
+                file_path = filedialog.askopenfilename(
+                    title="Select a JSON file",
+                    filetypes=[("JSON Files", "*.json")]
+                )
+                root.destroy()
+                callback(file_path)
+
+            t = threading.Thread(target=thread_func)
+            t.start()
+
+        self.switch_to_select()
+
+        def on_file_selected(file_path):
+            if not file_path:
+                return
+
+            project_root = os.path.abspath(os.path.join(os.path.dirname(__file__), "../../"))
+
+            # Compute relative path from project root
+            relative_path = os.path.relpath(file_path, project_root)
+
+            data = CreatureLoader.load("./" + relative_path)
+            if not data:
+                print("Failed to load creature.")
+                return
+            self.clear()
+
+            self.creature_to_ui(data)
+
+        get_file_dialog(on_file_selected)
+
+        self.switch_to_select()
+
+    def switch_to_select(self):
+        self.mode = 'select'
+        self.mode_func = self.select_mode
+
+    def save(self, _):
+        done = CreatureLoader.save(self.joints.values(), self.bones.values(), self.muscles.values())
+
+        running = True
+        while running:
+            for event in pygame.event.get():
+                if event.type == pygame.QUIT:
+                    pygame.quit()
+                elif event.type == pygame.MOUSEBUTTONDOWN:
+                    running = False
+                elif event.type == pygame.KEYDOWN:
+                    running = False
+
+            pygame.draw.rect(self.window, colors.background_secondary, pygame.Rect(500, 360, 200, 80), border_radius=5)
+            if done:
+                TextRenderer.render_text("Saved", 16, colors.foreground, (571, 390), self.window)
+            else:
+                TextRenderer.render_text("Couldn't Save", 16, colors.foreground, (532, 390), self.window)
+            pygame.display.flip()
+
+        self.switch_to_select()
+
+    def creature_to_ui(self, creature: Creature):
+        for joint in creature.joints:
+            pos = (joint.x,joint.y)
+            id = joint.id
+            j = Joint(InputHandler.coords_to_pos(pos),pos,id)
+            self.joints[id] = j
+            self.joint_num+=1
+
+        for bone in creature.bones:
+            id = bone.id
+            b = Bone(id, self.joints[bone.joint1_id], self.joints[bone.joint2_id])
+            self.bones[id] = b
+            self.bone_num+=1
+
+        for muscle in creature.muscles:
+            id = muscle.id
+            m = Muscle(id, self.bones[muscle.bone1_id], self.bones[muscle.bone2_id])
+            self.muscles[id] = m
+            self.muscle_num+=1
+
+    def clear(self, _=None):
         self.unselect()
         self.mode_func = self.select_mode
         self.mode = "select"
