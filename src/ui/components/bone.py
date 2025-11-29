@@ -16,13 +16,14 @@ class Bone:
 
         self.joint1 = min(joint1, joint2)
         self.joint2 = max(joint1, joint2)
-        self.a = Vector2(joint1.coords)
-        self.b = Vector2(joint2.coords)
+        self.joint1.bones.append(self)
+        self.joint2.bones.append(self)
 
         self.selected = False
 
     def show(self, window):
-        a, b = self.a, self.b
+        a = Vector2(self.joint1.coords)
+        b = Vector2(self.joint2.coords)
 
         d = b - a
 
@@ -45,7 +46,8 @@ class Bone:
         gfxdraw.aapolygon(window, [p1, p2, p3, p4], colors.bone_rgb)
 
     def check_click(self):
-        return InputHandler.check_mouse_hover_rotated(self.a, self.b, UI_BONE_WIDTH)
+        return InputHandler.check_mouse_hover_rotated(Vector2(self.joint1.coords), Vector2(self.joint2.coords), UI_BONE_WIDTH)
+
 
     @staticmethod
     def follow_mouse(a: tuple[float, float], window):

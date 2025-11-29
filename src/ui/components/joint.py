@@ -1,3 +1,5 @@
+from typing import Dict
+
 import pygame
 from pygame import Rect
 
@@ -26,6 +28,6 @@ class Joint:
         return InputHandler.check_mouse_hover(self.rect)
 
     def __lt__(self, other):
-        return int(self.id[1:]) < int(other.id[1:])# PROVERI OVO
+        return int(self.id[1:]) < int(other.id[1:])
 
 

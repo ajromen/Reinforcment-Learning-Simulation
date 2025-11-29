@@ -96,7 +96,7 @@ class CreationScene:
         TextRenderer.render_text("Current Mode: " + self.mode, 13, "#ffffff", (100, 780), self.window)
         TextRenderer.render_text("Selected: " + str(self.last_selected), 13, "#ffffff", (100, 740), self.window)
         if self.last_selected:
-            TextRenderer.render_text("Slected id: " + str(self.last_selected.id), 13, "#ffffff", (100, 720),
+            TextRenderer.render_text("Selected id: " + str(self.last_selected.id), 13, "#ffffff", (100, 720),
                                      self.window)
         TextRenderer.render_text("Current Mode: " + str(self.mode_func.__name__), 13, "#ffffff", (100, 760), self.window)
         return action
@@ -165,7 +165,6 @@ class CreationScene:
                 if self.last_selected == joint:
                     self.unselect()
                     return
-                print("bone created")
                 id = "b" + str(self.bone_num)
                 self.bone_num += 1
                 b = Bone(id, self.last_selected, joint)
@@ -187,11 +186,27 @@ class CreationScene:
         self.last_selected = None
         part = id[0]
         if part == 'j':
-            del (self.joints[id])
+            joint = self.joints[id]
+
+            to_delete = []
+            for bone_id, bone in self.bones.items():
+                if bone.joint1 == joint or bone.joint2 == joint:
+                    to_delete.append(bone_id)
+
+            for bone_id in to_delete:
+                del self.bones[bone_id]
+
+            del self.joints[id]
         if part == 'm':
             del (self.muscles[id])
         if part == 'b':
-            del (self.bones[id])
+            bone = self.bones[id]
+
+            bone.joint1.bones = [b for b in bone.joint1.bones if b != bone]
+            bone.joint2.bones = [b for b in bone.joint2.bones if b != bone]
+
+            del self.bones[id]
+
 
         self.mode = 'select'
         self.mode_func = self.select_mode
@@ -203,4 +218,12 @@ class CreationScene:
         pass
 
     def clear(self, clicked):
-        pass
+        self.unselect()
+        self.mode_func = self.select_mode
+        self.mode = "select"
+        self.joints.clear()
+        self.bones.clear()
+        self.muscles.clear()
+        self.bone_num = 0
+        self.muscle_num = 0
+        self.joint_num = 0
