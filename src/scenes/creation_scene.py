@@ -7,6 +7,7 @@ from typing import Dict
 import pygame
 
 from src.models.creature import Creature
+from src.scenes.configure_netwrork import ConfigureNetwork
 from src.ui import colors
 from src.ui.buttons_manager import ButtonsManager
 from src.ui.components.bone import Bone
@@ -33,6 +34,10 @@ class CreationScene:
         self.joint_num = 0
         self.muscle_num = 0
         self.bone_num = 0
+
+        # network conf
+        self.depth = 6
+        self.layer_widths = [1, 7, 10, 10, 3, 1]
 
         self.last_selected: Bone | Joint | None = None
 
@@ -231,7 +236,7 @@ class CreationScene:
                     to_delete.append(bone_id)
 
             for bone_id in to_delete:
-                del self.bones[bone_id]
+                self.del_bone(bone_id)
 
             del self.joints[id]
         if part == 'm':
@@ -242,27 +247,33 @@ class CreationScene:
 
             del self.muscles[id]
         if part == 'b':
-            bone = self.bones[id]
-
-            bone.joint1.bones = [b for b in bone.joint1.bones if b != bone]
-            bone.joint2.bones = [b for b in bone.joint2.bones if b != bone]
-
-            to_delete = []
-            for muscle_id, muscle in self.muscles.items():
-                if muscle.bone1 == bone or muscle.bone2 == bone:
-                    to_delete.append(muscle_id)
-
-            for muscle_id in to_delete:
-                del self.muscles[muscle_id]
-
-            del self.bones[id]
+            self.del_bone(id)
 
         self.switch_to_select()
+
+    def del_bone(self, id):
+        bone = self.bones[id]
+
+        bone.joint1.bones = [b for b in bone.joint1.bones if b != bone]
+        bone.joint2.bones = [b for b in bone.joint2.bones if b != bone]
+
+        to_delete = []
+        for muscle_id, muscle in self.muscles.items():
+            if muscle.bone1 == bone or muscle.bone2 == bone:
+                to_delete.append(muscle_id)
+
+        for muscle_id in to_delete:
+            del self.muscles[muscle_id]
+
+        del self.bones[id]
 
     def evolve(self, clicked):
         pass
 
     def neural_network_button(self, clicked):
+        conf = ConfigureNetwork(self.window, self.depth, self.layer_widths)
+        self.depth, self.layer_widths = conf.start()
+
         self.switch_to_select()
 
     def load(self, _=None):
@@ -331,23 +342,23 @@ class CreationScene:
 
     def creature_to_ui(self, creature: Creature):
         for joint in creature.joints:
-            pos = (joint.x,joint.y)
+            pos = (joint.x, joint.y)
             id = joint.id
-            j = Joint(InputHandler.coords_to_pos(pos),pos,id)
+            j = Joint(InputHandler.coords_to_pos(pos), pos, id)
             self.joints[id] = j
-            self.joint_num+=1
+            self.joint_num += 1
 
         for bone in creature.bones:
             id = bone.id
             b = Bone(id, self.joints[bone.joint1_id], self.joints[bone.joint2_id])
             self.bones[id] = b
-            self.bone_num+=1
+            self.bone_num += 1
 
         for muscle in creature.muscles:
             id = muscle.id
             m = Muscle(id, self.bones[muscle.bone1_id], self.bones[muscle.bone2_id])
             self.muscles[id] = m
-            self.muscle_num+=1
+            self.muscle_num += 1
 
     def clear(self, _=None):
         self.unselect()

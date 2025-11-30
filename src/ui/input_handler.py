@@ -38,4 +38,4 @@ class InputHandler:
         closest = a + ab * t
         dist = (mouse - closest).length()
 
-        return dist <= width / 2
+        return dist <= width/2

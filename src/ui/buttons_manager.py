@@ -30,11 +30,11 @@ class ButtonsManager:
                         ImageManager.evolve_button_inactive,
                         'evolve')
 
-        load = Button(WINDOW_WIDTH - 90, WINDOW_HEIGHT - 180, *LARGE_BUTTON_DIMENSIONS, ImageManager.load_button,
+        load = Button(WINDOW_WIDTH - 90, WINDOW_HEIGHT - 180, *SMALL_BUTTON_DIMENSIONS, ImageManager.load_button,
                         ImageManager.load_button_inactive,
                         'load')
 
-        save = Button(WINDOW_WIDTH - 180, WINDOW_HEIGHT - 180, *LARGE_BUTTON_DIMENSIONS, ImageManager.save_button,
+        save = Button(WINDOW_WIDTH - 180, WINDOW_HEIGHT - 180, *SMALL_BUTTON_DIMENSIONS, ImageManager.save_button,
                       ImageManager.save_button_inactive,
                       'save')
 

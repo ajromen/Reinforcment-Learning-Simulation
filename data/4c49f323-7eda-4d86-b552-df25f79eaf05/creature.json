@@ -1,0 +1,54 @@
+{
+    "id": "4c49f323-7eda-4d86-b552-df25f79eaf05",
+    "joints": [
+        {
+            "id": "j0",
+            "x": 12,
+            "y": 13
+        },
+        {
+            "id": "j1",
+            "x": 21,
+            "y": 11
+        },
+        {
+            "id": "j2",
+            "x": 22,
+            "y": 18
+        },
+        {
+            "id": "j3",
+            "x": 8,
+            "y": 17
+        }
+    ],
+    "bones": [
+        {
+            "id": "b0",
+            "joint1_id": "j0",
+            "joint2_id": "j3"
+        },
+        {
+            "id": "b1",
+            "joint1_id": "j0",
+            "joint2_id": "j1"
+        },
+        {
+            "id": "b2",
+            "joint1_id": "j1",
+            "joint2_id": "j2"
+        }
+    ],
+    "muscles": [
+        {
+            "id": "m0",
+            "bone1_id": "b0",
+            "bone2_id": "b1"
+        },
+        {
+            "id": "m1",
+            "bone1_id": "b1",
+            "bone2_id": "b2"
+        }
+    ]
+}

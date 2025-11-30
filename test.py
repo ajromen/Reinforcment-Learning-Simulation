@@ -2,8 +2,8 @@ import sys
 import math
 import numpy as np
 import pygame
-import pymunk
-from pymunk import pygame_util
+# import pymunk
+# from pymunk import pygame_util
 from src.scenes.creation_scene import CreationScene
 from src.ui.image_manager import ImageManager
 from src.utils.constants import WINDOW_WIDTH, WINDOW_HEIGHT
