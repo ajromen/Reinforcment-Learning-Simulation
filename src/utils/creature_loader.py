@@ -26,10 +26,9 @@ class CreatureLoader:
 
         return creature
 
-
     @staticmethod
     def save(joints, bones, muscles):
-        min_x = 0 # vrati na 1000 ako hoces top left
+        min_x = 0  # vrati na 1000 ako hoces top left
         min_y = 0
         joints_save = []
         muscle_save = []
@@ -41,18 +40,21 @@ class CreatureLoader:
                 min_y = joint.pos[1]
 
         for joint in joints:
-            j = Joint(joint.id, joint.pos[0] - min_x, joint.pos[1] - min_y)
+            j = Joint(joint.id, joint.pos[0] - min_x, joint.pos[1] - min_y, [bone.id for bone in joint.bones])
             joints_save.append(j)
+            if len(joint.bones) == 0:
+                return False
 
         if len(joints_save) == 0:
             return False
+
 
         for muscle in muscles:
             m = Muscle(muscle.id, muscle.bone1.id, muscle.bone2.id)
             muscle_save.append(m)
 
         for bone in bones:
-            b = Bone(bone.id, bone.joint1.id, bone.joint2.id)
+            b = Bone(bone.id, bone.joint1.id, bone.joint2.id, [muscle.id for muscle in bone.muscles])
             bone_save.append(b)
 
         id = uuid.uuid4()

@@ -23,6 +23,24 @@ class Creature:
             "muscles": [m.to_dict() for m in self.muscles],
         }
 
+    def get_bone(self, bone_id):
+        for b in self.bones:
+            if b.id == bone_id:
+                return b
+        return None
+
+    def get_joint(self, joint_id):
+        for j in self.joints:
+            if j.id == joint_id:
+                return j
+        return None
+
+    def get_muscle(self, muscle_id):
+        for m in self.muscles:
+            if m.id == muscle_id:
+                return m
+        return None
+
     @classmethod
     def from_dict(cls, data):
         joints = [Joint.from_dict(j) for j in data.get("joints", [])]
