@@ -1,9 +1,12 @@
 import math
+from typing import Dict
 
 import pymunk
+from pymunk import Body, Poly, SimpleMotor
 
 from src.models.creature import Creature
-from src.utils.constants import SIMULATION_BONE_WIDTH, BODY_FRICTION, BODY_MASS, SCALE, OVERLAP_ALLOWED, MOTOR_MAX_FORCE
+from src.utils.constants import SIMULATION_BONE_WIDTH, BODY_FRICTION, BODY_MASS, SCALE, OVERLAP_ALLOWED, \
+    MOTOR_MAX_FORCE, MAX_JOINT_ANGLE
 
 
 class CreaturePymunk:
@@ -11,15 +14,17 @@ class CreaturePymunk:
         self.creature = creature
         self.space = space
 
-        self.hubs = {}
-        self.bodies = {}
-        self.body_shapes = {}
-        self.motors = []
+        self.hubs: Dict[str, Body] = {}
+        self.bodies: Dict[str, Body] = {}
+        self.body_shapes:  Dict[str, Poly] = {}
+        self.motors: list[SimpleMotor] = []
         
         self.creature_to_pymunk()
 
     def creature_to_pymunk(self):
         self.create_joints()
+        self.create_bones()
+        self.create_muscles()
 
     def create_bones(self):
         for b in self.creature.bones:
@@ -59,6 +64,27 @@ class CreaturePymunk:
 
             # space.add(rs1, rs2)
 
+            MAX_ANGLE = math.radians(MAX_JOINT_ANGLE)
+
+            # TODO proveri koji ugao je manji i na njega stavi manji max angle
+
+            limit1 = pymunk.RotaryLimitJoint(
+                body,
+                self.hubs[j1.id],
+                -MAX_ANGLE,
+                MAX_ANGLE
+            )
+
+            limit2 = pymunk.RotaryLimitJoint(
+                body,
+                self.hubs[j2.id],
+                -MAX_ANGLE,
+                MAX_ANGLE
+            )
+
+            self.space.add(limit1, limit2)
+
+
     def create_joints(self):
         for j in self.creature.joints:
             if len(j.bone_ids) < 1:
@@ -67,8 +93,6 @@ class CreaturePymunk:
             hub = self.create_hub(self.world_pos(j.x, j.y))
             self.hubs[j.id] = hub
 
-            # for b_id in j.bone_ids:
-            #     b = self.get_bone(b_id)
 
     def create_muscles(self):
         for m in self.creature.muscles:
@@ -82,11 +106,6 @@ class CreaturePymunk:
             self.space.add(motor)
             self.motors.append(motor)
 
-            # motor_meta.append({
-            #     "freq": random.uniform(0.6, 1.6),
-            #     "phase": random.uniform(0, math.pi * 2),
-            #     "amp": random.uniform(0.6, MOTOR_AMPLITUDE)
-            # })
 
     def world_pos(self, x, y):
         return pymunk.Vec2d(x * SCALE, y * SCALE)

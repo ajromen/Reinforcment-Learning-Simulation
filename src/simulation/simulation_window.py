@@ -4,22 +4,26 @@ import pygame
 import pymunk
 from pymunk import pygame_util
 
+from src.agents.agent import Agent
 from src.models.creature import Creature
+from src.pymunk.creature_pymunk import CreaturePymunk
 from src.ui.colors import background_secondary
 from src.utils.constants import FPS, WINDOW_WIDTH, WINDOW_HEIGHT, SIMULATION_SUBSTEPS
 
 
 class SimulationWindow:
-    def __init__(self, creature: Creature, model):
+    def __init__(self, creature: Creature, model: Agent):
         pygame.init()
         self.window =  pygame.display.set_mode((WINDOW_WIDTH, WINDOW_HEIGHT))
         self.space  = pymunk.Space()
+        self.creature = CreaturePymunk(creature,self.space)
         self.draw = pygame_util.DrawOptions(self.window)
         self.setup_space()
 
+
     def start(self):
         clock = pygame.time.Clock()
-
+        random_muscle = self.creature.motors[0]
         running = True
         while running:
             clicked = False
@@ -30,6 +34,11 @@ class SimulationWindow:
                 elif event.type == pygame.MOUSEBUTTONDOWN:
                     if event.button == 1:
                         clicked = True
+                elif event.type == pygame.KEYDOWN:
+                    if event.key == pygame.K_UP:
+                        random_muscle.rate = 4
+                    elif event.key == pygame.K_DOWN:
+                        random_muscle.rate = -4
 
             self.run_pymunk()
             self.show_ui(clicked)

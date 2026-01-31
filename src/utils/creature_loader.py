@@ -27,7 +27,7 @@ class CreatureLoader:
         return creature
 
     @staticmethod
-    def ui_to_creature(joints, bones, muscles) -> Creature|None:
+    def ui_to_creature(joints, bones, muscles) -> Creature | None:
         min_x = 0  # vrati na 1000 ako hoces top left
         min_y = 0
         joints_save = []
@@ -58,17 +58,17 @@ class CreatureLoader:
 
         id = uuid.uuid4()
         creature = Creature(id, joints_save, bone_save, muscle_save)
-        return  creature
+        return creature
 
     @staticmethod
     def save(joints, bones, muscles):
-        creature = CreatureLoader.ui_to_creature(joints,bones,muscles)
+        creature = CreatureLoader.ui_to_creature(joints, bones, muscles)
         if creature is None: return False
         return CreatureLoader.save_creature(creature)
 
     @staticmethod
     def save_creature(creature: Creature):
-        folder_name = SAVE_FILE_PATH + str(id)
+        folder_name = SAVE_FILE_PATH + str(creature.id)
         file_name = "creature.json"
         folder_path = Path(folder_name)
         file_path = folder_path / file_name
