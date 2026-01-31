@@ -22,3 +22,7 @@ class TextRenderer:
         font = TextRenderer.load_font(size)
         text_surface = font.render(text, True, color)
         window.blit(text_surface, pos)
+
+    @staticmethod
+    def clear_all():
+        TextRenderer.fonts={}

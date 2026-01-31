@@ -2,7 +2,7 @@ import os
 import threading
 import tkinter as tk
 from tkinter import filedialog
-from typing import Dict
+from typing import Dict, List
 
 import pygame
 
@@ -16,12 +16,12 @@ from src.ui.components.muscle import Muscle
 from src.ui.image_manager import ImageManager
 from src.ui.input_handler import InputHandler
 from src.ui.text_renderer import TextRenderer
-from src.utils.constants import WINDOW_HEIGHT, FPS
+from src.utils.constants import WINDOW_HEIGHT, FPS, WINDOW_WIDTH
 from src.utils.creature_loader import CreatureLoader
 
 
 class CreationScene:
-    def __init__(self, window):
+    def __init__(self, window, creature):
         self.bones: Dict[str, Bone] = {}
         self.muscles: Dict[str, Muscle] = {}
         self.joints: Dict[str, Joint] = {}
@@ -54,7 +54,12 @@ class CreationScene:
             "save": self.save
         }
 
-    def start(self):
+        if creature is not None:
+            self.creature_to_ui(creature)
+
+    # returns creature model with neural net configuration
+    def start(self) -> tuple[Creature, List[int]] | None:
+        self.switch_to_select()
         clock = pygame.time.Clock()
 
         running = True
@@ -63,6 +68,7 @@ class CreationScene:
             for event in pygame.event.get():
                 if event.type == pygame.QUIT:
                     pygame.quit()
+                    break
                 elif event.type == pygame.MOUSEBUTTONDOWN:
                     if event.button == 1:
                         clicked = True
@@ -73,10 +79,23 @@ class CreationScene:
                 self.mode = action
                 self.mode_func = self.mode_names.get(action, lambda: print("Nije pronadjen mod"))
 
+            if self.mode == 'learn':
+                creature = CreatureLoader.ui_to_creature(self.joints.values(), self.bones.values(),
+                                                         self.muscles.values())
+                if creature is None:
+                    self.print_notif(False)
+                else:
+                    CreatureLoader.save_creature(creature)
+                    return creature, self.layer_widths
+                self.switch_to_select()
+                clicked = False
+
             self.mode_func(clicked)
 
             clock.tick(FPS)
             pygame.display.flip()
+
+        return None
 
     def show_ui(self, clicked):
         self.window.fill(colors.background_primary)
@@ -117,9 +136,6 @@ class CreationScene:
 
     def draw_grid(self):
         self.window.blit(ImageManager.dots_grid_small, (100, 0))
-
-    def get_function_for_mode(self, clicked):
-        pass
 
     def select_mode(self, clicked):
         if not clicked: return
@@ -266,7 +282,7 @@ class CreationScene:
         del self.bones[id]
 
     def learn(self, clicked):
-        pass
+        return
 
     def neural_network_button(self, clicked):
         conf = ConfigureNetwork(self.window, self.depth, self.layer_widths)
@@ -319,6 +335,11 @@ class CreationScene:
     def save(self, _):
         done = CreatureLoader.save(self.joints.values(), self.bones.values(), self.muscles.values())
 
+        self.print_notif(done)
+
+        self.switch_to_select()
+
+    def print_notif(self, saved):
         running = True
         while running:
             for event in pygame.event.get():
@@ -330,13 +351,11 @@ class CreationScene:
                     running = False
 
             pygame.draw.rect(self.window, colors.background_secondary, pygame.Rect(500, 360, 200, 80), border_radius=5)
-            if done:
+            if saved:
                 TextRenderer.render_text("Saved", 16, colors.foreground, (571, 390), self.window)
             else:
                 TextRenderer.render_text("Couldn't Save", 16, colors.foreground, (532, 390), self.window)
             pygame.display.flip()
-
-        self.switch_to_select()
 
     def creature_to_ui(self, creature: Creature):
         for joint in creature.joints:

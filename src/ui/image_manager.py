@@ -58,6 +58,30 @@ class ImageManager:
         ImageManager.dots_grid_small = pygame.image.load(ASSETS_PATH+"dots_grid.png").convert_alpha()
         ImageManager.muscle = pygame.image.load(ASSETS_PATH+"muscle.png").convert_alpha()
 
+    @staticmethod
+    def clear_all():
+        ImageManager.select_button = None
+        ImageManager.joint_button = None
+        ImageManager.bone_button = None
+        ImageManager.muscle_button = None
+        ImageManager.clear_button = None
+        ImageManager.delete_button = None
+        ImageManager.learn_button = None
+        ImageManager.neural_network_button = None
+        ImageManager.load_button = None
+        ImageManager.save_button = None
 
+        ImageManager.select_button_inactive = None
+        ImageManager.joint_button_inactive = None
+        ImageManager.bone_button_inactive = None
+        ImageManager.muscle_button_inactive = None
+        ImageManager.clear_button_inactive = None
+        ImageManager.delete_button_inactive = None
+        ImageManager.learn_button_inactive = None
+        ImageManager.neural_network_button_inactive = None
+        ImageManager.load_button_inactive = None
+        ImageManager.save_button_inactive = None
 
+        ImageManager.dots_grid_small = None
+        ImageManager.muscle = None
 

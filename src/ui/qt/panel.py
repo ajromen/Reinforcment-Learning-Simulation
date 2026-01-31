@@ -1,3 +1,4 @@
+import os
 from pathlib import Path
 
 from PyQt6.QtCore import Qt
@@ -6,17 +7,18 @@ from PyQt6.QtWidgets import QWidget, QVBoxLayout, QLabel, QTextBrowser
 from src.ui.colors import light_background
 from src.ui.qt.button import Button
 
-test_md = Path("tmp/README.md")
+test_md = "./tmp/README.md"
+
 
 class Panel(QWidget):
-    def __init__(self, title: str, description: str, active_icon: str, inactive_icon: str):
+    def __init__(self, title: str, description: str, active_icon: str, inactive_icon: str,on_click):
         super().__init__()
 
         self.layout = QVBoxLayout(self)
         self.layout.setAlignment(Qt.AlignmentFlag.AlignCenter)
         self.layout.setSpacing(60)
 
-        self.button = Button(title, active_icon, inactive_icon, self.load_markdown)
+        self.button = Button(title, active_icon, inactive_icon, on_click)
 
         self.description = QLabel(description)
         self.description.setWordWrap(True)
@@ -28,22 +30,26 @@ class Panel(QWidget):
         self.layout.addWidget(self.description, 0, Qt.AlignmentFlag.AlignHCenter)
 
     def load_markdown(self):
-        self.button.deleteLater()
-        self.description.deleteLater()
+        self.button.hide()
+        self.description.hide()
 
         viewer = QTextBrowser()
+        viewer.setOpenExternalLinks(True)
         viewer.setStyleSheet(f"""
             QTextBrowser {{
-                background-color: transparent;
+                background-color: #0c0c0c;
                 color: #e0e0e0;
                 font-size: 16px;
             }}
+            a {{
+                color: red;
+            }}
         """)
 
-        if test_md.exists():
-            viewer.setMarkdown(test_md.read_text(encoding="utf-8"))
+
+        if os.path.exists(test_md):
+            viewer.setMarkdown(open(test_md).read())
         else:
             viewer.setPlainText(f"File not found:\n{test_md}")
 
         self.layout.addWidget(viewer)
-
