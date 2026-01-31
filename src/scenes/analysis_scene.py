@@ -1,7 +1,8 @@
 import sys
-from multiprocessing import Process
+from multiprocessing import Process, Queue
 
 import pygame
+from PyQt6.QtCore import QTimer
 from PyQt6.QtWidgets import QApplication, QHBoxLayout
 
 from src.models.creature import Creature
@@ -19,10 +20,9 @@ class AnalysisScene:
         self.app = QApplication(sys.argv)
         qt_utils.load_font()
         self.window = MainWindow()
-        self.left = None
-        self.right = None
         self._setup_window()
         self.files_root = "./data/"  # + creature.id
+        self.queue = Queue()
 
     def _setup_window(self):
         layout = QHBoxLayout(self.window)
@@ -53,30 +53,54 @@ class AnalysisScene:
         self.app.exec()
 
     def run_reinforce(self):
-        callback = self.reinforce_finished
+        self.left.button.setEnabled(False)
+        self.right.button.setEnabled(False)
+        p = Process(target=self._reinforce_process, args=(self.queue,))
 
-        def simulation_process(callback):
-            reinforce_window = SimulationWindow(self.creature, None)
-            reinforce_window.start()
-            pygame.quit()
-            # ne moze ovako moras da dodas QTimer i Queue iz multiprocessinga
-            callback()
-
-        p = Process(target=simulation_process,args=(callback,))
         p.start()
+
+        self.timer = QTimer()
+        self.timer.timeout.connect(self._check_queue)
+        self.timer.start(5000)  # proverava svakih 5s
 
     def run_ppo(self):
-        def simulation_process():
-            reinforce_window = SimulationWindow(self.creature, None)
-            reinforce_window.start()
-            pygame.quit()
-            self.ppo_finished()
+        self.left.button.setEnabled(False)
+        self.right.button.setEnabled(False)
+        p = Process(target=self._ppo_process, args=(self.queue,))
 
-        p = Process(target=simulation_process)
         p.start()
 
+        self.timer = QTimer()
+        self.timer.timeout.connect(self._check_queue)
+        self.timer.start(5000)  # proverava svakih 5s
+
+    def _reinforce_process(self, queue):
+        reinforce_window = SimulationWindow(self.creature, None)
+        reinforce_window.start()
+        pygame.quit()
+        queue.put("reinforce")
+
+    def _ppo_process(self, queue):
+        reinforce_window = SimulationWindow(self.creature, None)
+        reinforce_window.start()
+        pygame.quit()
+        queue.put("ppo")
+
+    def _check_queue(self):
+        if not self.queue.empty():
+            self.timer.stop()
+            process = self.queue.get()
+            if process == "reinforce":
+                self.reinforce_finished()
+            elif process == "ppo":
+                self.ppo_finished()
+
     def ppo_finished(self):
+        self.left.button.setEnabled(True)
+        self.right.button.setEnabled(False)
         self.right.load_markdown()
 
     def reinforce_finished(self):
+        self.left.button.setEnabled(False)
+        self.right.button.setEnabled(True)
         self.left.load_markdown()
