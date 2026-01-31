@@ -2,10 +2,12 @@ import os
 
 import pygame
 
+from src.utils.constants import ASSETS_PATH
+
 
 class TextRenderer:
     fonts = {}
-    path = "assets/JetBrainsMono-Regular.ttf"
+    path = ASSETS_PATH+"JetBrainsMono-Regular.ttf"
 
     @staticmethod
     def load_font(size):

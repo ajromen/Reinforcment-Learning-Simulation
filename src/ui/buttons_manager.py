@@ -26,9 +26,9 @@ class ButtonsManager:
         neural_network = Button(WINDOW_WIDTH - 90, 10, *SMALL_BUTTON_DIMENSIONS, ImageManager.neural_network_button,
                                 ImageManager.neural_network_button_inactive,
                                 'neural_network')
-        evolve = Button(WINDOW_WIDTH - 210, WINDOW_HEIGHT - 90, *LARGE_BUTTON_DIMENSIONS, ImageManager.evolve_button,
-                        ImageManager.evolve_button_inactive,
-                        'evolve')
+        learn = Button(WINDOW_WIDTH - 210, WINDOW_HEIGHT - 90, *LARGE_BUTTON_DIMENSIONS, ImageManager.learn_button,
+                        ImageManager.learn_button_inactive,
+                        'learn')
 
         load = Button(WINDOW_WIDTH - 90, WINDOW_HEIGHT - 180, *SMALL_BUTTON_DIMENSIONS, ImageManager.load_button,
                         ImageManager.load_button_inactive,
@@ -38,7 +38,7 @@ class ButtonsManager:
                       ImageManager.save_button_inactive,
                       'save')
 
-        self.creation_scene_buttons = [select, muscle, joint, bone, delete, clear, neural_network, evolve, load, save]
+        self.creation_scene_buttons = [select, muscle, joint, bone, delete, clear, neural_network, learn, load, save]
 
     def show_check_creation_scene_buttons(self, clicked, mode):
         ret = None

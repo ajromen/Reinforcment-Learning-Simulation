@@ -47,7 +47,7 @@ class CreationScene:
             "muscle": self.muscle_mode,
             "bone": self.bone_mode,
             "delete": self.delete_mode,
-            "evolve": self.evolve,
+            "learn": self.learn,
             "neural_network": self.neural_network_button,
             "clear": self.clear,
             "load": self.load,
@@ -77,8 +77,6 @@ class CreationScene:
 
             clock.tick(FPS)
             pygame.display.flip()
-
-        return
 
     def show_ui(self, clicked):
         self.window.fill(colors.background_primary)
@@ -267,7 +265,7 @@ class CreationScene:
 
         del self.bones[id]
 
-    def evolve(self, clicked):
+    def learn(self, clicked):
         pass
 
     def neural_network_button(self, clicked):

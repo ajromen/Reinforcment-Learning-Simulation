@@ -5,6 +5,7 @@ foreground_secondary = "#9C9C9C"
 background_dots = "#353535"
 muscle = "#612F2F"
 bone = "#979797"
+light_background = "#D9D9D9"
 
 #RGB
 

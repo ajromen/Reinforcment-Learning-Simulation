@@ -1,14 +1,9 @@
 import math
-from venv import create
 
 import pymunk
-from pygame import Vector2
 
-from src.models.bone import Bone
 from src.models.creature import Creature
-from src.models.joint import Joint
 from src.utils.constants import SIMULATION_BONE_WIDTH, BODY_FRICTION, BODY_MASS, SCALE, OVERLAP_ALLOWED, MOTOR_MAX_FORCE
-from working_example import rest_angle
 
 
 class CreaturePymunk:
