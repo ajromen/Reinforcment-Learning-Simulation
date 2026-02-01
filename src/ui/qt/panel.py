@@ -1,6 +1,7 @@
 import os
 from pathlib import Path
 
+import markdown
 from PyQt6.QtCore import Qt
 from PyQt6.QtWidgets import QWidget, QVBoxLayout, QLabel, QTextBrowser
 
@@ -11,7 +12,7 @@ test_md = "./tmp/README.md"
 
 
 class Panel(QWidget):
-    def __init__(self, title: str, description: str, active_icon: str, inactive_icon: str,on_click):
+    def __init__(self, title: str, description: str, active_icon: str, inactive_icon: str, on_click):
         super().__init__()
 
         self.layout = QVBoxLayout(self)
@@ -34,22 +35,35 @@ class Panel(QWidget):
         self.description.hide()
 
         viewer = QTextBrowser()
+
+
+        if not os.path.exists(test_md):
+            viewer.setPlainText(f"File not found:\n{test_md}")
+            self.layout.addWidget(viewer)
+            return
+
+
+        html = markdown.markdown(
+            open(test_md).read(),
+            extensions=[
+                "fenced_code",
+                "tables",
+            ]
+        )
+
+        viewer.setHtml(html)
         viewer.setOpenExternalLinks(True)
-        viewer.setStyleSheet(f"""
-            QTextBrowser {{
+
+        viewer.setStyleSheet("""
+            QTextBrowser {
                 background-color: #0c0c0c;
                 color: #e0e0e0;
-                font-size: 16px;
-            }}
-            a {{
-                color: red;
-            }}
+                font-family: "JetBrains Mono";
+                font-size: 15px;
+                padding: 12px;
+            }
         """)
 
 
-        if os.path.exists(test_md):
-            viewer.setMarkdown(open(test_md).read())
-        else:
-            viewer.setPlainText(f"File not found:\n{test_md}")
 
         self.layout.addWidget(viewer)

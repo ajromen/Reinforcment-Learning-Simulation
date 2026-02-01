@@ -89,4 +89,4 @@ Training Summary:
 ```
 </details>
 
-[ajmo neki dugacak link]("https://google.com"")
+<a href="https://google.com"> link?</a>

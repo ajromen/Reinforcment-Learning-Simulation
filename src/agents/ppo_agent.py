@@ -11,3 +11,6 @@ class PPOAgent(Agent):
 
     def step(self, state: list[float]) -> np.ndarray:
         pass
+
+    def reward(self, reward):
+        pass

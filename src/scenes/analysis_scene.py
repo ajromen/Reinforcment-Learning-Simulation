@@ -78,7 +78,7 @@ class AnalysisScene:
 
         self.timer = QTimer()
         self.timer.timeout.connect(self._check_queue)
-        self.timer.start(5000)  # proverava svakih 5s
+        self.timer.start(1000)  # proverava svakih 1s
 
     def _reinforce_process(self, queue):
         agent = ReinforceAgent(self.nn_layers)
