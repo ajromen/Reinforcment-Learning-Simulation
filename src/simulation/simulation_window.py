@@ -7,7 +7,9 @@ from pymunk import pygame_util
 from src.agents.agent import Agent
 from src.models.creature import Creature
 from src.pymunk.creature_pymunk import CreaturePymunk
-from src.ui.colors import background_secondary
+from src.ui.colors import background_secondary, foreground, light_background, background_dots, background_primary, \
+    foreground_secondary
+from src.ui.text_renderer import TextRenderer
 from src.utils.constants import FPS, WINDOW_WIDTH, WINDOW_HEIGHT, SIMULATION_SUBSTEPS, GROUND_Y, GRAVITY
 
 
@@ -76,44 +78,46 @@ class SimulationWindow:
         self.move_ground()
 
         self.window.fill(background_secondary)
+        self.draw_ground_markers()
         self.space.debug_draw(self.draw)
+
+    def draw_ground_markers(self):
+        left = -self.camera_offset.x
+        right = left + WINDOW_WIDTH
+        y = GROUND_Y
+        color = foreground_secondary
+
+        for x in range(int(left // 50) * 50, int(right), 50):
+            screen_x = x + self.camera_offset.x
+            if x % 200 == 0:
+                pygame.draw.line(self.window, color, (screen_x, y), (screen_x, y - 20), 2)
+                TextRenderer.render_text(f"{x // 200 - 3} m", 16, color, (screen_x-10, y - 50), self.window)
+            else:
+                pygame.draw.line(self.window, color, (screen_x, y), (screen_x, y - 10), 1)
 
     def move_camera(self, center):
         target = pygame.math.Vector2(self.screen_center.x - center[0], 0)
-        # print(target[0])
         self.camera_offset = target
         tx, ty = target
         self.draw.transform = pymunk.Transform(a=1, b=0, c=0, d=1, tx=tx, ty=ty)
 
+
     def move_ground(self):
-        #TODO ispisi za 3 segmenta ne moze bas ovako
         left = -self.camera_offset.x
-        right = -self.camera_offset.x + WINDOW_WIDTH
+        # right = -self.camera_offset.x + WINDOW_WIDTH
         if self.ground.b.x < left:
             self.space.remove(self.ground)
-            self.ground = pymunk.Segment(self.space.static_body, (right, GROUND_Y), (right + WINDOW_WIDTH, GROUND_Y),
+            move = self.ground_1.b.x
+            self.ground = pymunk.Segment(self.space.static_body, (move, GROUND_Y), (move + WINDOW_WIDTH, GROUND_Y),
                                          5.0)
             self.space.add(self.ground)
 
         elif self.ground_1.b.x < left:
             self.space.remove(self.ground_1)
-            self.ground_1 = pymunk.Segment(self.space.static_body, (right, GROUND_Y), (right + WINDOW_WIDTH, GROUND_Y),
+            move = self.ground.b.x
+            self.ground_1 = pymunk.Segment(self.space.static_body, (move, GROUND_Y), (move + WINDOW_WIDTH, GROUND_Y),
                                            5.0)
             self.space.add(self.ground_1)
-
-        # elif self.ground.a.x > right:
-        #     print("Ground moved left")
-        #     self.space.remove(self.ground)
-        #     self.ground = pymunk.Segment(self.space.static_body, (left-WINDOW_WIDTH, GROUND_Y), (left, GROUND_Y),
-        #                                  5.0)
-        #     self.space.add(self.ground)
-        #
-        # elif self.ground_1.a.x > right:
-        #     print("Ground 1 moved left")
-        #     self.space.remove(self.ground_1)
-        #     self.ground_1 = pymunk.Segment(self.space.static_body, (left-WINDOW_WIDTH, GROUND_Y), (left, GROUND_Y),
-        #                                  5.0)
-        #     self.space.add(self.ground_1)
 
     def run_pymunk(self):
         dt = 1 / FPS
