@@ -10,7 +10,7 @@ from src.simulation.simulation_window import SimulationWindow
 from src.ui.qt import qt_utils
 from src.ui.qt.panel import Panel
 from src.ui.qt.window import MainWindow
-from src.utils.constants import ASSETS_PATH
+from src.utils.constants import ASSETS_PATH, SAVE_FILE_PATH
 
 
 class AnalysisScene:
@@ -21,7 +21,7 @@ class AnalysisScene:
         qt_utils.load_font()
         self.window = MainWindow()
         self._setup_window()
-        self.files_root = "./data/"  # + creature.id
+        self.files_root = SAVE_FILE_PATH  # + creature.id
         self.queue = Queue()
 
     def _setup_window(self):

@@ -28,8 +28,8 @@ class CreatureLoader:
 
     @staticmethod
     def ui_to_creature(joints, bones, muscles) -> Creature | None:
-        min_x = 0  # vrati na 1000 ako hoces top left
-        min_y = 0
+        min_x = 1000  # vrati na 1000 ako hoces top left
+        min_y = 1000
         joints_save = []
         muscle_save = []
         bone_save = []

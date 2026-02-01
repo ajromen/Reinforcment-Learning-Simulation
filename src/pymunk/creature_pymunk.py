@@ -6,7 +6,7 @@ from pymunk import Body, Poly, SimpleMotor
 
 from src.models.creature import Creature
 from src.utils.constants import SIMULATION_BONE_WIDTH, BODY_FRICTION, BODY_MASS, SCALE, OVERLAP_ALLOWED, \
-    MOTOR_MAX_FORCE, MAX_JOINT_ANGLE
+    MOTOR_MAX_FORCE, MAX_JOINT_ANGLE, WINDOW_WIDTH, WINDOW_HEIGHT, GROUND_Y
 
 
 class CreaturePymunk:
@@ -16,15 +16,44 @@ class CreaturePymunk:
 
         self.hubs: Dict[str, Body] = {}
         self.bodies: Dict[str, Body] = {}
-        self.body_shapes:  Dict[str, Poly] = {}
+        self.body_shapes: Dict[str, Poly] = {}
         self.motors: list[SimpleMotor] = []
-        
+        self.bounds = []
+        self.num_of_joints = len(creature.joints)
+
         self.creature_to_pymunk()
 
     def creature_to_pymunk(self):
+        self._find_bounds()
         self.create_joints()
         self.create_bones()
         self.create_muscles()
+
+    def move(self, dx: float):
+        for body in list(self.bodies.values()) + list(self.hubs.values()):
+            body.position += (dx, 0)
+            body.velocity = (0, 0)
+            body.angular_velocity = 0
+
+    def get_center(self):
+        sum_x = 0
+        sum_y = 0
+        for j in self.hubs.values():
+            x,y = j.position
+            sum_y+=y
+            sum_x+=x
+
+        return sum_x/self.num_of_joints, sum_y/self.num_of_joints
+
+    def _find_bounds(self):
+        max_w = 0
+        max_h = 0
+        for j in self.creature.joints:
+            if j.x > max_w:
+                max_w = j.x
+            if j.y > max_h:
+                max_h = j.y
+        self.bounds = [max_w, max_h]
 
     def create_bones(self):
         for b in self.creature.bones:
@@ -68,22 +97,17 @@ class CreaturePymunk:
 
             # TODO proveri koji ugao je manji i na njega stavi manji max angle
 
-            limit1 = pymunk.RotaryLimitJoint(
-                body,
-                self.hubs[j1.id],
-                -MAX_ANGLE,
-                MAX_ANGLE
-            )
+            limit1 = pymunk.RotaryLimitJoint(body, self.hubs[j1.id],
+                                             -MAX_ANGLE,
+                                             MAX_ANGLE
+                                             )
 
-            limit2 = pymunk.RotaryLimitJoint(
-                body,
-                self.hubs[j2.id],
-                -MAX_ANGLE,
-                MAX_ANGLE
-            )
+            limit2 = pymunk.RotaryLimitJoint(body, self.hubs[j2.id],
+                                             -MAX_ANGLE,
+                                             MAX_ANGLE
+                                             )
 
             self.space.add(limit1, limit2)
-
 
     def create_joints(self):
         for j in self.creature.joints:
@@ -92,7 +116,6 @@ class CreaturePymunk:
 
             hub = self.create_hub(self.world_pos(j.x, j.y))
             self.hubs[j.id] = hub
-
 
     def create_muscles(self):
         for m in self.creature.muscles:
@@ -106,10 +129,10 @@ class CreaturePymunk:
             self.space.add(motor)
             self.motors.append(motor)
 
-
     def world_pos(self, x, y):
-        return pymunk.Vec2d(x * SCALE, y * SCALE)
-
+        x_pos = x*SCALE + WINDOW_WIDTH//2 - self.bounds[0]*SCALE/2
+        y_pos = y*SCALE - self.bounds[1]*SCALE + GROUND_Y - 20
+        return pymunk.Vec2d(x_pos, y_pos)
 
     def create_hub(self, pos):
         hub_mass = BODY_MASS
@@ -117,7 +140,6 @@ class CreaturePymunk:
         hub = pymunk.Body(hub_mass, hub_inertia)
         hub.position = pos
         hub_shape = pymunk.Circle(hub, 5)
-        # completely disable hub collisions (categories=0, mask=0)
         hub_shape.filter = pymunk.ShapeFilter(categories=0b0, mask=0b0)
         hub_shape.sensor = True
         self.space.add(hub, hub_shape)

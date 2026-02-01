@@ -5,7 +5,7 @@ from src.scenes.analysis_scene import AnalysisScene
 from src.simulation.simulation_window import SimulationWindow
 from src.utils.creature_loader import CreatureLoader
 
-creature = CreatureLoader.load("./data/a7403382-371c-43d3-85cd-16d062b21813/creature.json")
+creature = CreatureLoader.load("./data/058ba9a2-c39f-45ea-82ee-47b2d84e4987/creature.json")
 # ansc = AnalysisScene(creature,[1,10,1])
 # ansc.start()
 
