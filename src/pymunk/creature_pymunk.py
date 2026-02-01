@@ -1,12 +1,14 @@
 import math
 from typing import Dict
 
+import numpy as np
 import pymunk
 from pymunk import Body, Poly, SimpleMotor
 
 from src.models.creature import Creature
 from src.utils.constants import SIMULATION_BONE_WIDTH, BODY_FRICTION, BODY_MASS, SCALE, OVERLAP_ALLOWED, \
-    MOTOR_MAX_FORCE, MAX_JOINT_ANGLE, WINDOW_WIDTH, WINDOW_HEIGHT, GROUND_Y
+    MOTOR_MAX_FORCE, MAX_JOINT_ANGLE, WINDOW_WIDTH, WINDOW_HEIGHT, GROUND_Y, MAX_MOTOR_RATE, \
+    EXPECTED_MAX_ANGULAR_VELOCITY, EXPECTED_MAX_LINEAR_VELOCITY
 
 
 class CreaturePymunk:
@@ -24,7 +26,7 @@ class CreaturePymunk:
         self.creature_to_pymunk()
 
     def creature_to_pymunk(self):
-        self._find_bounds()
+        self._find_bounds_inital()
         self.create_joints()
         self.create_bones()
         self.create_muscles()
@@ -39,21 +41,41 @@ class CreaturePymunk:
         sum_x = 0
         sum_y = 0
         for j in self.hubs.values():
-            x,y = j.position
-            sum_y+=y
-            sum_x+=x
+            x, y = j.position
+            sum_y += y
+            sum_x += x
 
-        return sum_x/self.num_of_joints, sum_y/self.num_of_joints
+        return sum_x / self.num_of_joints, sum_y / self.num_of_joints
 
-    def _find_bounds(self):
+    def _find_bounds_inital(self):
         max_w = 0
         max_h = 0
+
         for j in self.creature.joints:
             if j.x > max_w:
                 max_w = j.x
             if j.y > max_h:
                 max_h = j.y
         self.bounds = [max_w, max_h]
+
+    def _find_bounds(self):
+        min_x = math.inf
+        max_x = -math.inf
+        min_y = math.inf
+        max_y = -math.inf
+
+        for hub in self.hubs.values():
+            p = hub.position
+            if p.x > max_x:
+                max_x = p.x
+            if p.x < min_x:
+                min_x = p.x
+            if p.y > max_y:
+                max_y = p.y
+            if p.y < min_y:
+                min_y = p.y
+
+        return min_x, max_x, min_y, max_y
 
     def create_bones(self):
         for b in self.creature.bones:
@@ -129,9 +151,10 @@ class CreaturePymunk:
             self.space.add(motor)
             self.motors.append(motor)
 
+    # koristi se samo pri kreaciji nije problem ako se bounds menja
     def world_pos(self, x, y):
-        x_pos = x*SCALE + WINDOW_WIDTH//2 - self.bounds[0]*SCALE/2
-        y_pos = y*SCALE - self.bounds[1]*SCALE + GROUND_Y - 20
+        x_pos = x * SCALE + WINDOW_WIDTH // 2 - self.bounds[0] * SCALE / 2
+        y_pos = y * SCALE - self.bounds[1] * SCALE + GROUND_Y - 20
         return pymunk.Vec2d(x_pos, y_pos)
 
     def create_hub(self, pos):
@@ -153,3 +176,43 @@ class CreaturePymunk:
 
     def get_muscle(self, muscle_id):
         return self.creature.get_muscle(muscle_id)
+
+    def get_state(self):
+        inp = []
+
+        for m in self.motors:
+            inp.append(np.clip(m.rate / MAX_MOTOR_RATE, -1, 1))
+
+        for b in self.bodies.values():
+            angle = b.angle
+            inp.append(math.sin(angle))
+            inp.append(math.cos(angle))
+
+            angular_velocity = b.angular_velocity
+            # ako je angular vel>20 x>1 -> clip an 1
+            inp.append(np.clip(angular_velocity / EXPECTED_MAX_ANGULAR_VELOCITY, -1, 1))
+
+        # pozicije hubova u odnosu na centar i brzine
+        cx, cy = self.get_center()
+        min_x, max_x, min_y, max_y = self._find_bounds()
+        w = max(max_x - min_x, 1e-6)
+        h = max(max_y - min_y, 1e-6)
+        for hub in self.hubs.values():
+            # rx = np.clip((hub.position.x - cx) / w, -1, 1)
+            # ry = np.clip((hub.position.y - cy) / h, -1, 1)
+            rx = (hub.position.x - cx) / w
+            ry = (hub.position.y - cy) / h
+
+            vx = np.clip(hub.velocity.x / EXPECTED_MAX_LINEAR_VELOCITY, -1, 1)
+            vy = np.clip(hub.velocity.y / EXPECTED_MAX_LINEAR_VELOCITY, -1, 1)
+
+            inp.extend([rx, ry, vx, vy])
+
+        return np.array(inp)
+
+    @staticmethod
+    def get_number_of_inputs(creature: Creature):
+        j = len(creature.joints)
+        m = len(creature.muscles)
+        b = len(creature.bones)
+        return j * 4 + b * 3 + m

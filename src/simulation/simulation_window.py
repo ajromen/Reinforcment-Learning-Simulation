@@ -10,7 +10,8 @@ from src.pymunk.creature_pymunk import CreaturePymunk
 from src.ui.colors import background_secondary, foreground, light_background, background_dots, background_primary, \
     foreground_secondary
 from src.ui.text_renderer import TextRenderer
-from src.utils.constants import FPS, WINDOW_WIDTH, WINDOW_HEIGHT, SIMULATION_SUBSTEPS, GROUND_Y, GRAVITY
+from src.utils.constants import FPS, WINDOW_WIDTH, WINDOW_HEIGHT, SIMULATION_SUBSTEPS, GROUND_Y, GRAVITY, \
+    GROUND_FRICTION, MOTOR_MAX_FORCE, MAX_MOTOR_RATE
 
 
 class SimulationWindow:
@@ -21,6 +22,7 @@ class SimulationWindow:
         self.creature = CreaturePymunk(creature, self.space)
         self.draw = pygame_util.DrawOptions(self.window)
         self.setup_space()
+        self.model = model
 
         self.camera_offset = pygame.math.Vector2(0, 0)
         self.screen_center = pygame.math.Vector2(WINDOW_WIDTH // 2, WINDOW_HEIGHT // 2)
@@ -28,6 +30,7 @@ class SimulationWindow:
     def start(self):
         clock = pygame.time.Clock()
         random_muscle = self.creature.motors[0]
+        i=0
         running = True
         while running:
             clicked = False
@@ -50,14 +53,15 @@ class SimulationWindow:
                         self.creature.move(10)
 
             self.run_pymunk()
+            self.model_reward()
 
             self.show()
             self.show_ui(clicked)
 
-            # print(self.creature.get_center())
-
-            self.model_step()
-
+            if i%2==0:
+                self.model_step()
+                i=0
+            i+=1
             clock.tick(FPS)
             pygame.display.flip()
 
@@ -91,7 +95,7 @@ class SimulationWindow:
             screen_x = x + self.camera_offset.x
             if x % 200 == 0:
                 pygame.draw.line(self.window, color, (screen_x, y), (screen_x, y - 20), 2)
-                TextRenderer.render_text(f"{x // 200 - 3} m", 16, color, (screen_x-10, y - 50), self.window)
+                TextRenderer.render_text(f"{x // 200 - 3} m", 16, color, (screen_x - 10, y - 50), self.window)
             else:
                 pygame.draw.line(self.window, color, (screen_x, y), (screen_x, y - 10), 1)
 
@@ -101,7 +105,6 @@ class SimulationWindow:
         tx, ty = target
         self.draw.transform = pymunk.Transform(a=1, b=0, c=0, d=1, tx=tx, ty=ty)
 
-
     def move_ground(self):
         left = -self.camera_offset.x
         # right = -self.camera_offset.x + WINDOW_WIDTH
@@ -110,6 +113,7 @@ class SimulationWindow:
             move = self.ground_1.b.x
             self.ground = pymunk.Segment(self.space.static_body, (move, GROUND_Y), (move + WINDOW_WIDTH, GROUND_Y),
                                          5.0)
+            self.ground.friction = GROUND_FRICTION
             self.space.add(self.ground)
 
         elif self.ground_1.b.x < left:
@@ -117,6 +121,7 @@ class SimulationWindow:
             move = self.ground.b.x
             self.ground_1 = pymunk.Segment(self.space.static_body, (move, GROUND_Y), (move + WINDOW_WIDTH, GROUND_Y),
                                            5.0)
+            self.ground_1.friction = GROUND_FRICTION
             self.space.add(self.ground_1)
 
     def run_pymunk(self):
@@ -125,4 +130,11 @@ class SimulationWindow:
             self.space.step(dt / 6)
 
     def model_step(self):
-        pass
+        activation = self.model.step(self.creature.get_state())
+
+        for i, a in enumerate(activation):
+            self.creature.motors[i].rate = float(a) * MAX_MOTOR_RATE
+
+    def model_reward(self):
+        reward = 0
+        self.model.reward(reward)
