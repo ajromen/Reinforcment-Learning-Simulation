@@ -24,18 +24,19 @@ class Creature:
         }
 
     def get_bone(self, bone_id):
+    def get_bone(self, bone_id) -> Bone | None:
         for b in self.bones:
             if b.id == bone_id:
                 return b
         return None
 
-    def get_joint(self, joint_id):
+    def get_joint(self, joint_id) -> Joint | None:
         for j in self.joints:
             if j.id == joint_id:
                 return j
         return None
 
-    def get_muscle(self, muscle_id):
+    def get_muscle(self, muscle_id) -> Muscle | None:
         for m in self.muscles:
             if m.id == muscle_id:
                 return m

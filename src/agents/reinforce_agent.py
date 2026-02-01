@@ -15,4 +15,9 @@ class ReinforceAgent(Agent):
         return rng.uniform(-1.0, 1.0, size=self.output_size)
 
     def reward(self, reward):
+        #save
+        pass
+
+    def episode_end(self):
+        #backrpop
         pass

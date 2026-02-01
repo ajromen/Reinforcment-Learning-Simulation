@@ -14,3 +14,6 @@ class PPOAgent(Agent):
 
     def reward(self, reward):
         pass
+
+    def episode_end(self):
+        pass

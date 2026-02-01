@@ -33,3 +33,6 @@ GROUND_FRICTION = 1.0
 MAX_MOTOR_RATE = 20.0
 EXPECTED_MAX_ANGULAR_VELOCITY = 15 #? trbalo bi da se testira i proveri sluzi za normalizaciju
 EXPECTED_MAX_LINEAR_VELOCITY = 15
+
+# params
+NUM_OF_STEPS_PER_EPISODE = 100000

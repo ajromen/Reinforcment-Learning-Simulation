@@ -1,5 +1,6 @@
 from typing import List
 
+import numpy as np
 import pygame
 import pymunk
 from pymunk import pygame_util
@@ -11,7 +12,7 @@ from src.ui.colors import background_secondary, foreground, light_background, ba
     foreground_secondary
 from src.ui.text_renderer import TextRenderer
 from src.utils.constants import FPS, WINDOW_WIDTH, WINDOW_HEIGHT, SIMULATION_SUBSTEPS, GROUND_Y, GRAVITY, \
-    GROUND_FRICTION, MOTOR_MAX_FORCE, MAX_MOTOR_RATE
+    GROUND_FRICTION, MOTOR_MAX_FORCE, MAX_MOTOR_RATE, NUM_OF_STEPS_PER_EPISODE
 
 
 class SimulationWindow:
@@ -23,6 +24,9 @@ class SimulationWindow:
         self.draw = pygame_util.DrawOptions(self.window)
         self.setup_space()
         self.model = model
+        self.step = 0
+        self.last_center: tuple[float, float] = self.creature.get_center()
+        self.curr_center: tuple[float, float] = self.last_center
 
         self.camera_offset = pygame.math.Vector2(0, 0)
         self.screen_center = pygame.math.Vector2(WINDOW_WIDTH // 2, WINDOW_HEIGHT // 2)
@@ -30,7 +34,7 @@ class SimulationWindow:
     def start(self):
         clock = pygame.time.Clock()
         random_muscle = self.creature.motors[0]
-        i=0
+        i = 0
         running = True
         while running:
             clicked = False
@@ -48,9 +52,11 @@ class SimulationWindow:
                         random_muscle.rate = -4
 
                     if event.key == pygame.K_LEFT:
-                        self.creature.move(-10)
+                        self.creature.debug_move(-10)
                     elif event.key == pygame.K_RIGHT:
-                        self.creature.move(10)
+                        self.creature.debug_move(10)
+                    elif event.key == pygame.K_r:
+                        self.creature.restart()
 
             self.run_pymunk()
             self.model_reward()
@@ -58,10 +64,10 @@ class SimulationWindow:
             self.show()
             self.show_ui(clicked)
 
-            if i%2==0:
+            if i % 2 == 0:
                 self.model_step()
-                i=0
-            i+=1
+                i = 0
+            i += 1
             clock.tick(FPS)
             pygame.display.flip()
 
@@ -78,7 +84,7 @@ class SimulationWindow:
         pass
 
     def show(self):
-        self.move_camera(self.creature.get_center())
+        self.move_camera(self.curr_center)
         self.move_ground()
 
         self.window.fill(background_secondary)
@@ -129,12 +135,36 @@ class SimulationWindow:
         for _ in range(SIMULATION_SUBSTEPS):
             self.space.step(dt / 6)
 
+    def restart_episode(self):
+        self.creature.restart()
+        self.step = 0
+        center = self.creature.get_center()
+        self.last_center = center
+        self.curr_center = center
+
+        self.model.episode_end()
+
     def model_step(self):
+        self.last_center = self.last_center
+        self.curr_center = self.creature.get_center()
+        self.step += 1
         activation = self.model.step(self.creature.get_state())
 
         for i, a in enumerate(activation):
             self.creature.motors[i].rate = float(a) * MAX_MOTOR_RATE
 
     def model_reward(self):
-        reward = 0
+        cx1, cy = self.curr_center
+        cx0, _ = self.last_center
+        reward = cx1 - cx1
+        done = False
+        if cy < 0:  # fell backward
+            done = True
+            reward -= 10
+        elif self.step >= NUM_OF_STEPS_PER_EPISODE:
+            done = True
+
         self.model.reward(reward)
+
+        if done:
+            self.restart_episode()

@@ -21,17 +21,19 @@ class CreaturePymunk:
         self.body_shapes: Dict[str, Poly] = {}
         self.motors: list[SimpleMotor] = []
         self.bounds = []
+        self.pivots = []
+        self.limits = []
         self.num_of_joints = len(creature.joints)
 
         self.creature_to_pymunk()
 
     def creature_to_pymunk(self):
-        self._find_bounds_inital()
+        self._find_bounds_initial()
         self.create_joints()
         self.create_bones()
         self.create_muscles()
 
-    def move(self, dx: float):
+    def debug_move(self, dx: float):
         for body in list(self.bodies.values()) + list(self.hubs.values()):
             body.position += (dx, 0)
             body.velocity = (0, 0)
@@ -47,7 +49,7 @@ class CreaturePymunk:
 
         return sum_x / self.num_of_joints, sum_y / self.num_of_joints
 
-    def _find_bounds_inital(self):
+    def _find_bounds_initial(self):
         max_w = 0
         max_h = 0
 
@@ -108,7 +110,7 @@ class CreaturePymunk:
             pj1.collide_bodies = OVERLAP_ALLOWED
             pj2.collide_bodies = OVERLAP_ALLOWED
             self.space.add(pj1, pj2)
-
+            self.pivots.extend([pj1, pj2])
             # rest_angle = body.angle
             # rs1 = pymunk.DampedRotarySpring(body, self.hubs[j1.id], rest_angle, stiffness=1e4, damping=1e2)
             # rs2 = pymunk.DampedRotarySpring(body, self.hubs[j2.id], rest_angle, stiffness=1e4, damping=1e2)
@@ -118,7 +120,6 @@ class CreaturePymunk:
             MAX_ANGLE = math.radians(MAX_JOINT_ANGLE)
 
             # TODO proveri koji ugao je manji i na njega stavi manji max angle
-
             limit1 = pymunk.RotaryLimitJoint(body, self.hubs[j1.id],
                                              -MAX_ANGLE,
                                              MAX_ANGLE
@@ -128,6 +129,7 @@ class CreaturePymunk:
                                              -MAX_ANGLE,
                                              MAX_ANGLE
                                              )
+            self.limits.extend([limit1,limit2])
 
             self.space.add(limit1, limit2)
 
@@ -151,7 +153,6 @@ class CreaturePymunk:
             self.space.add(motor)
             self.motors.append(motor)
 
-    # koristi se samo pri kreaciji nije problem ako se bounds menja
     def world_pos(self, x, y):
         x_pos = x * SCALE + WINDOW_WIDTH // 2 - self.bounds[0] * SCALE / 2
         y_pos = y * SCALE - self.bounds[1] * SCALE + GROUND_Y - 20
@@ -209,6 +210,40 @@ class CreaturePymunk:
             inp.extend([rx, ry, vx, vy])
 
         return np.array(inp)
+
+    def restart(self):
+        for bone_id, body in self.bodies.items():
+            if body in self.space.bodies:
+                self.space.remove(body)
+            shape = self.body_shapes.get(bone_id)
+            if shape and shape in self.space.shapes:
+                self.space.remove(shape)
+
+        for hub in self.hubs.values():
+            for shape in hub.shapes:
+                if shape in self.space.shapes:
+                    self.space.remove(shape)
+            if hub in self.space.bodies:
+                self.space.remove(hub)
+
+        for motor in self.motors:
+            if motor in self.space.constraints:
+                self.space.remove(motor)
+
+        for limit in self.limits:
+            self.space.remove(limit)
+
+        for pivot in self.pivots:
+            self.space.remove(pivot)
+
+        self.bodies.clear()
+        self.hubs.clear()
+        self.body_shapes.clear()
+        self.motors.clear()
+        self.pivots.clear()
+        self.limits.clear()
+
+        self.creature_to_pymunk()
 
     @staticmethod
     def get_number_of_inputs(creature: Creature):

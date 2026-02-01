@@ -14,3 +14,6 @@ class Agent:
 
     def reward(self, reward):
         raise NotImplementedError
+
+    def episode_end(self):
+        raise NotImplementedError
