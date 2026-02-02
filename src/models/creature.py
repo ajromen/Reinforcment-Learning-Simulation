@@ -23,7 +23,6 @@ class Creature:
             "muscles": [m.to_dict() for m in self.muscles],
         }
 
-    def get_bone(self, bone_id):
     def get_bone(self, bone_id) -> Bone | None:
         for b in self.bones:
             if b.id == bone_id:

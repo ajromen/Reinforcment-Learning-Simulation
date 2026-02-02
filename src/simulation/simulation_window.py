@@ -1,8 +1,11 @@
+import io
+import math
 from typing import List
 
 import numpy as np
 import pygame
 import pymunk
+from matplotlib import pyplot as plt
 from pymunk import pygame_util
 
 from src.agents.agent import Agent
@@ -30,6 +33,10 @@ class SimulationWindow:
 
         self.camera_offset = pygame.math.Vector2(0, 0)
         self.screen_center = pygame.math.Vector2(WINDOW_WIDTH // 2, WINDOW_HEIGHT // 2)
+
+        self.dist_per_episode =  []
+        self.max_x = -math.inf
+        self.progress_graph = None
 
     def start(self):
         clock = pygame.time.Clock()
@@ -73,15 +80,48 @@ class SimulationWindow:
 
     def setup_space(self):
         self.space.gravity = (0, GRAVITY)
+        self._place_ground()
+
+
+    def _place_ground(self):
         static_body = self.space.static_body
         self.ground = pymunk.Segment(static_body, (0, GROUND_Y), (WINDOW_WIDTH, GROUND_Y), 5.0)
-        self.ground.friction = 1.0
+        self.ground.friction = GROUND_FRICTION
         self.ground_1 = pymunk.Segment(static_body, (WINDOW_WIDTH, GROUND_Y), (WINDOW_WIDTH * 2, GROUND_Y), 5.0)
+        self.ground_1.friction = GROUND_FRICTION
         self.space.add(self.ground_1)
         self.space.add(self.ground)
 
     def show_ui(self, clicked):
-        pass
+        TextRenderer.render_text(str(self.step)+"/"+str(NUM_OF_STEPS_PER_EPISODE), 15, foreground, (10, 10), self.window)
+
+        if self.progress_graph:
+            self.window.blit(self.progress_graph, (WINDOW_WIDTH - self.progress_graph.get_width() - 10, 10))
+
+    def _plot_distance_surface(self):
+        if len(self.dist_per_episode) == 0:
+            return None
+
+        fig, ax = plt.subplots(figsize=(3, 2), dpi=100)  # small figure
+        ax.plot(self.dist_per_episode, color=light_background, linewidth=2)
+        fig.patch.set_color(background_secondary)
+        ax.patch.set_color(background_secondary)
+        ax.tick_params(colors=light_background)
+        ax.spines['bottom'].set_color(background_secondary)  # axes lines
+        ax.spines['top'].set_color(background_secondary)
+        ax.spines['left'].set_color(background_secondary)
+        ax.spines['right'].set_color(background_secondary)
+
+        ax.grid(True, color=background_primary)
+        fig.tight_layout()
+
+        buf = io.BytesIO()
+        fig.savefig(buf, format='png')
+        buf.seek(0)
+        plt.close(fig)
+
+        img = pygame.image.load(buf).convert_alpha()
+        return img
 
     def show(self):
         self.move_camera(self.curr_center)
@@ -133,19 +173,25 @@ class SimulationWindow:
     def run_pymunk(self):
         dt = 1 / FPS
         for _ in range(SIMULATION_SUBSTEPS):
-            self.space.step(dt / 6)
+            self.space.step(dt / SIMULATION_SUBSTEPS)
 
     def restart_episode(self):
         self.creature.restart()
         self.step = 0
+        self.dist_per_episode.append(self.max_x-WINDOW_WIDTH//2)
+        self.max_x = -math.inf
         center = self.creature.get_center()
         self.last_center = center
         self.curr_center = center
 
+        self._place_ground()
+
         self.model.episode_end()
 
+        self.progress_graph = self._plot_distance_surface()
+
     def model_step(self):
-        self.last_center = self.last_center
+        self.last_center = self.curr_center
         self.curr_center = self.creature.get_center()
         self.step += 1
         activation = self.model.step(self.creature.get_state())
@@ -153,12 +199,15 @@ class SimulationWindow:
         for i, a in enumerate(activation):
             self.creature.motors[i].rate = float(a) * MAX_MOTOR_RATE
 
+        if self.curr_center[0] > self.max_x:
+            self.max_x = self.curr_center[0]
+
     def model_reward(self):
         cx1, cy = self.curr_center
         cx0, _ = self.last_center
-        reward = cx1 - cx1
+        reward = cx1 - cx0
         done = False
-        if cy < 0:  # fell backward
+        if cy > GROUND_Y + 10:
             done = True
             reward -= 10
         elif self.step >= NUM_OF_STEPS_PER_EPISODE:

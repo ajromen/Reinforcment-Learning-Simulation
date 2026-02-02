@@ -1,10 +1,11 @@
 from typing import List
 
-import numpy as np
+from torch import nn
 
 
-class Agent:
+class Agent(nn.Module):
     def __init__(self, layer_widths: List[int]):
+        super().__init__()
         self.layer_widths = layer_widths
         self.input_size = layer_widths[0]
         self.output_size = layer_widths[-1]
