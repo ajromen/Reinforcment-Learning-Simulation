@@ -47,6 +47,7 @@ class SimulationWindow:
         random_muscle = self.creature.motors[0]
         i = 0
         running = True
+        alt = False
         while running:
             clicked = False
             for event in pygame.event.get():
@@ -58,35 +59,36 @@ class SimulationWindow:
                         clicked = True
                 elif event.type == pygame.KEYDOWN:
                     if event.key == pygame.K_UP:
-                        random_muscle.rate = 4
+                        self.creature.motors[0].rate = 4
                     elif event.key == pygame.K_DOWN:
-                        random_muscle.rate = -4
+                        self.creature.motors[0].rate = -4
 
-                    if event.key == pygame.K_LEFT:
+                    elif event.key == pygame.K_LEFT:
                         self.creature.debug_move(-10)
                     elif event.key == pygame.K_RIGHT:
                         self.creature.debug_move(10)
                     elif event.key == pygame.K_r:
-                        self.creature.restart()
+                        self.restart_episode()
                     elif event.key == pygame.K_e:
                         self.end_simulation()
+                    elif event.key == pygame.K_LALT:
+                        alt = True
+                elif event.type == pygame.KEYUP:
+                    if event.key == pygame.K_LALT:
+                        alt = False
 
             if i % 2 == 0:
                 self.model_step()
-                i = 0
-
 
             self.run_pymunk()
-            if i == 0:
+            if i % 2 == 0:
                 self.model_reward()
 
-            i+=1
-            self.show()
-            self.show_ui(clicked)
-
             i += 1
+            self.show()
+            self.show_ui(clicked, alt)
 
-            if STOP_AT_SIMULATION_END and  NUM_OF_EPIOSDES_PER_SIMULATION <= self.ep_num:
+            if STOP_AT_SIMULATION_END and NUM_OF_EPIOSDES_PER_SIMULATION <= self.ep_num:
                 self.model.end_simulation()
                 self.end_simulation()
                 return
@@ -113,11 +115,16 @@ class SimulationWindow:
         self.space.add(self.ground_1)
         self.space.add(self.ground)
 
-    def show_ui(self, clicked):
+    def show_ui(self, clicked, alt):
+
         TextRenderer.render_text("Steps: " + str(self.step) + "/" + str(NUM_OF_STEPS_PER_EPISODE), 15, foreground,
                                  (10, 10), self.window)
         TextRenderer.render_text("Episodes: " + str(self.ep_num) + "/" + str(NUM_OF_EPIOSDES_PER_SIMULATION), 15,
                                  foreground, (10, 30), self.window)
+        TextRenderer.render_text("Hold L_ALT to se options", 16, foreground, (10, 50), self.window)
+
+        if alt:
+            TextRenderer.render_text("R: next episode", 16, foreground, (10, 70), self.window)
 
         if self.progress_graph:
             self.window.blit(self.progress_graph, (WINDOW_WIDTH - self.progress_graph.get_width() - 10, 10))
@@ -201,7 +208,7 @@ class SimulationWindow:
     def restart_episode(self):
         self.creature.restart()
         self.step = 0
-        self.dist_per_episode.append((self.max_x - WINDOW_WIDTH // 2)/200)
+        self.dist_per_episode.append((self.max_x - WINDOW_WIDTH // 2) / 200)
         self.ep_num += 1
         self.max_x = -math.inf
         center = self.creature.get_center()
@@ -223,7 +230,7 @@ class SimulationWindow:
         self.act_sum = 0
         for i, a in enumerate(activation):
             self.creature.motors[i].rate = float(a) * MAX_MOTOR_RATE
-            self.act_sum +=a
+            self.act_sum += a
 
         if self.curr_center[0] > self.max_x:
             self.max_x = self.curr_center[0]

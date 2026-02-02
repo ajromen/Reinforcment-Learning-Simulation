@@ -8,7 +8,7 @@ from pymunk import Body, Poly, SimpleMotor
 from src.models.creature import Creature
 from src.utils.constants import SIMULATION_BONE_WIDTH, BODY_FRICTION, BODY_MASS, SCALE, OVERLAP_ALLOWED, \
     MOTOR_MAX_FORCE, MAX_JOINT_ANGLE, WINDOW_WIDTH, WINDOW_HEIGHT, GROUND_Y, MAX_MOTOR_RATE, \
-    EXPECTED_MAX_ANGULAR_VELOCITY, EXPECTED_MAX_LINEAR_VELOCITY
+    EXPECTED_MAX_ANGULAR_VELOCITY, EXPECTED_MAX_LINEAR_VELOCITY, MIN_JOINT_ANGLE, JOINT_LIMITS, ADD_SPRINGS
 
 
 class CreaturePymunk:
@@ -34,6 +34,8 @@ class CreaturePymunk:
         self.create_joints()
         self.create_bones()
         self.create_muscles()
+        if JOINT_LIMITS:
+            self.create_limits()
 
     def debug_move(self, dx: float):
         for body in list(self.bodies.values()) + list(self.hubs.values()):
@@ -99,7 +101,9 @@ class CreaturePymunk:
             body.position = mid
             body.angle = angle
 
+            # body.damping = 0.9
             body.angular_damping = 0.9
+
             body.velocity_func = pymunk.Body.update_velocity
 
             shape = pymunk.Poly.create_box(body, (length, SIMULATION_BONE_WIDTH))
@@ -107,7 +111,6 @@ class CreaturePymunk:
             if OVERLAP_ALLOWED:
                 shape.filter = pymunk.ShapeFilter(group=1)  # ako je 1 onda nema kolizije
             self.space.add(body, shape)
-
 
             self.bodies[b.id] = body
             self.body_shapes[b.id] = shape
@@ -118,20 +121,6 @@ class CreaturePymunk:
             pj2.collide_bodies = OVERLAP_ALLOWED
             self.space.add(pj1, pj2)
             self.pivots.extend([pj1, pj2])
-            # rest_angle = body.angle
-            # rs1 = pymunk.DampedRotarySpring(body, self.hubs[j1.id], rest_angle, stiffness=1e4, damping=1e2)
-            # rs2 = pymunk.DampedRotarySpring(body, self.hubs[j2.id], rest_angle, stiffness=1e4, damping=1e2)
-
-            # space.add(rs1, rs2)
-
-            MAX_ANGLE = math.radians(MAX_JOINT_ANGLE)
-
-            limit1 = pymunk.RotaryLimitJoint(body, self.hubs[j1.id], -MAX_ANGLE, MAX_ANGLE)
-
-            limit2 = pymunk.RotaryLimitJoint(body, self.hubs[j2.id], -MAX_ANGLE, MAX_ANGLE)
-            self.limits.extend([limit1, limit2])
-
-            self.space.add(limit1, limit2)
 
     def create_joints(self):
         for j in self.creature.joints:
@@ -153,9 +142,51 @@ class CreaturePymunk:
             self.space.add(motor)
             self.motors.append(motor)
 
+    def create_limits(self):
+        MAX_ANGLE = math.radians(MAX_JOINT_ANGLE)
+        MIN_ANGLE = math.radians(MIN_JOINT_ANGLE)
+        visited: Dict[tuple, bool] = {}
+        for joint in self.creature.joints:
+            bodies: list[Body] = []
+            for bid in joint.bone_ids:
+                bodies.append(self.bodies[bid])
+
+            for i in range(len(bodies)):
+                for j in range(len(bodies)):
+                    b1 = bodies[i]
+                    b2 = bodies[j]
+                    if b1 == b2:
+                        continue
+
+                    key = tuple(sorted([b1.id, b2.id]))
+                    if key in visited:
+                        continue
+                    visited[key] = True
+
+                    min_angle = MIN_ANGLE
+                    # if b1.angle - b2.angle >0:
+                    #     min_angle *=-1
+
+                    angle = b1.angle - b2.angle
+                    angle = - angle if angle < 0 else angle
+
+                    limit = pymunk.RotaryLimitJoint(b1, b2, min_angle, angle + MAX_ANGLE)
+                    self.limits.append(limit)
+                    self.space.add(limit)
+
+                    if not ADD_SPRINGS:
+                        continue
+                    center_b1 = b1.center_of_gravity
+                    center_b2 = b2.center_of_gravity
+                    dist = center_b1.get_distance((center_b2.x, center_b2.y))
+                    spring = pymunk.DampedSpring(b1, b2, (center_b1.x, center_b1.y), (center_b2.x, center_b2.y), dist,
+                                                 10, 10)
+                    self.limits.append(spring)
+                    self.space.add(spring)
+
     def world_pos(self, x, y):
         x_pos = x * SCALE + WINDOW_WIDTH // 2 - self.bounds[0] * SCALE / 2
-        y_pos = y * SCALE - self.bounds[1] * SCALE + GROUND_Y - 20
+        y_pos = y * SCALE - self.bounds[1] * SCALE + GROUND_Y - 1
         return pymunk.Vec2d(x_pos, y_pos)
 
     def create_hub(self, pos):
@@ -199,10 +230,8 @@ class CreaturePymunk:
         w = max(max_x - min_x, 1e-6)
         h = max(max_y - min_y, 1e-6)
         for hub in self.hubs.values():
-            # rx = np.clip((hub.position.x - cx) / w, -1, 1)
-            # ry = np.clip((hub.position.y - cy) / h, -1, 1)
-            rx = (hub.position.x - cx) / w
-            ry = (hub.position.y - cy) / h
+            rx = np.clip((hub.position.x - cx) / w, -1, 1)
+            ry = np.clip((hub.position.y - cy) / h, -1, 1)
 
             vx = np.clip(hub.velocity.x / EXPECTED_MAX_LINEAR_VELOCITY, -1, 1)
             vy = np.clip(hub.velocity.y / EXPECTED_MAX_LINEAR_VELOCITY, -1, 1)
@@ -253,3 +282,6 @@ class CreaturePymunk:
         m = len(creature.muscles)
         b = len(creature.bones)
         return j * 4 + b * 3 + m + 1  # dist do zemlje
+
+    def motor_set_rate(self):
+        pass

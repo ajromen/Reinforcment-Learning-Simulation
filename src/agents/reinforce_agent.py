@@ -50,6 +50,8 @@ class ReinforceAgent(Agent):
         self.rewards.append(reward)
 
     def episode_end(self):
+        if len(self.rewards)==0 or len(self.saved_log_probs)==0:
+            return
         returns = []
         G = 0.0
         for r in reversed(self.rewards):
