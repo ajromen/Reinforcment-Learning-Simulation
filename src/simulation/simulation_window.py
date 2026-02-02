@@ -1,5 +1,6 @@
 import io
 import math
+import sys
 from typing import List
 
 import numpy as np
@@ -15,7 +16,8 @@ from src.ui.colors import background_secondary, foreground, light_background, ba
     foreground_secondary
 from src.ui.text_renderer import TextRenderer
 from src.utils.constants import FPS, WINDOW_WIDTH, WINDOW_HEIGHT, SIMULATION_SUBSTEPS, GROUND_Y, GRAVITY, \
-    GROUND_FRICTION, MOTOR_MAX_FORCE, MAX_MOTOR_RATE, NUM_OF_STEPS_PER_EPISODE
+    GROUND_FRICTION, MOTOR_MAX_FORCE, MAX_MOTOR_RATE, NUM_OF_STEPS_PER_EPISODE, NUM_OF_EPIOSDES_PER_SIMULATION, \
+    STOP_AT_SIMULATION_END
 
 
 class SimulationWindow:
@@ -34,9 +36,11 @@ class SimulationWindow:
         self.camera_offset = pygame.math.Vector2(0, 0)
         self.screen_center = pygame.math.Vector2(WINDOW_WIDTH // 2, WINDOW_HEIGHT // 2)
 
-        self.dist_per_episode =  []
+        self.dist_per_episode = []
+        self.ep_num = 0
         self.max_x = -math.inf
         self.progress_graph = None
+        self.act_sum = 0
 
     def start(self):
         clock = pygame.time.Clock()
@@ -64,17 +68,29 @@ class SimulationWindow:
                         self.creature.debug_move(10)
                     elif event.key == pygame.K_r:
                         self.creature.restart()
-
-            self.run_pymunk()
-            self.model_reward()
-
-            self.show()
-            self.show_ui(clicked)
+                    elif event.key == pygame.K_e:
+                        self.end_simulation()
 
             if i % 2 == 0:
                 self.model_step()
                 i = 0
+
+
+            self.run_pymunk()
+            if i == 0:
+                self.model_reward()
+
+            i+=1
+            self.show()
+            self.show_ui(clicked)
+
             i += 1
+
+            if STOP_AT_SIMULATION_END and  NUM_OF_EPIOSDES_PER_SIMULATION <= self.ep_num:
+                self.model.end_simulation()
+                self.end_simulation()
+                return
+
             clock.tick(FPS)
             pygame.display.flip()
 
@@ -82,6 +98,11 @@ class SimulationWindow:
         self.space.gravity = (0, GRAVITY)
         self._place_ground()
 
+    def end_simulation(self):
+        print(str(self.dist_per_episode))
+        while True:
+            pass
+        pass
 
     def _place_ground(self):
         static_body = self.space.static_body
@@ -93,7 +114,10 @@ class SimulationWindow:
         self.space.add(self.ground)
 
     def show_ui(self, clicked):
-        TextRenderer.render_text(str(self.step)+"/"+str(NUM_OF_STEPS_PER_EPISODE), 15, foreground, (10, 10), self.window)
+        TextRenderer.render_text("Steps: " + str(self.step) + "/" + str(NUM_OF_STEPS_PER_EPISODE), 15, foreground,
+                                 (10, 10), self.window)
+        TextRenderer.render_text("Episodes: " + str(self.ep_num) + "/" + str(NUM_OF_EPIOSDES_PER_SIMULATION), 15,
+                                 foreground, (10, 30), self.window)
 
         if self.progress_graph:
             self.window.blit(self.progress_graph, (WINDOW_WIDTH - self.progress_graph.get_width() - 10, 10))
@@ -153,7 +177,6 @@ class SimulationWindow:
 
     def move_ground(self):
         left = -self.camera_offset.x
-        # right = -self.camera_offset.x + WINDOW_WIDTH
         if self.ground.b.x < left:
             self.space.remove(self.ground)
             move = self.ground_1.b.x
@@ -178,7 +201,8 @@ class SimulationWindow:
     def restart_episode(self):
         self.creature.restart()
         self.step = 0
-        self.dist_per_episode.append(self.max_x-WINDOW_WIDTH//2)
+        self.dist_per_episode.append((self.max_x - WINDOW_WIDTH // 2)/200)
+        self.ep_num += 1
         self.max_x = -math.inf
         center = self.creature.get_center()
         self.last_center = center
@@ -196,8 +220,10 @@ class SimulationWindow:
         self.step += 1
         activation = self.model.step(self.creature.get_state())
 
+        self.act_sum = 0
         for i, a in enumerate(activation):
             self.creature.motors[i].rate = float(a) * MAX_MOTOR_RATE
+            self.act_sum +=a
 
         if self.curr_center[0] > self.max_x:
             self.max_x = self.curr_center[0]
@@ -207,9 +233,10 @@ class SimulationWindow:
         cx0, _ = self.last_center
         reward = cx1 - cx0
         done = False
+        reward -= self.act_sum
         if cy > GROUND_Y + 10:
             done = True
-            reward -= 10
+            reward -= 100
         elif self.step >= NUM_OF_STEPS_PER_EPISODE:
             done = True
 

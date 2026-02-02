@@ -3,7 +3,7 @@ from typing import List
 from torch import nn
 
 
-class Agent(nn.Module):
+class Agent:
     def __init__(self, layer_widths: List[int]):
         super().__init__()
         self.layer_widths = layer_widths

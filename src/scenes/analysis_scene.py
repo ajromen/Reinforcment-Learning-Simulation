@@ -28,7 +28,6 @@ class AnalysisScene:
         input_size = CreaturePymunk.get_number_of_inputs(creature)
         self.nn_layers[-1] = len(creature.muscles)
         self.nn_layers[0] = input_size
-        print(nn_layers)
 
     def _setup_window(self):
         layout = QHBoxLayout(self.window)

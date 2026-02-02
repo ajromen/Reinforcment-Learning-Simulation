@@ -27,6 +27,8 @@ class CreaturePymunk:
 
         self.creature_to_pymunk()
 
+        self.space.damping = 0.9
+
     def creature_to_pymunk(self):
         self._find_bounds_initial()
         self.create_joints()
@@ -97,10 +99,15 @@ class CreaturePymunk:
             body.position = mid
             body.angle = angle
 
+            body.angular_damping = 0.9
+            body.velocity_func = pymunk.Body.update_velocity
+
             shape = pymunk.Poly.create_box(body, (length, SIMULATION_BONE_WIDTH))
             shape.friction = BODY_FRICTION
-            shape.filter = pymunk.ShapeFilter(group=1)
+            if OVERLAP_ALLOWED:
+                shape.filter = pymunk.ShapeFilter(group=1)  # ako je 1 onda nema kolizije
             self.space.add(body, shape)
+
 
             self.bodies[b.id] = body
             self.body_shapes[b.id] = shape
@@ -119,17 +126,10 @@ class CreaturePymunk:
 
             MAX_ANGLE = math.radians(MAX_JOINT_ANGLE)
 
-            # TODO proveri koji ugao je manji i na njega stavi manji max angle
-            limit1 = pymunk.RotaryLimitJoint(body, self.hubs[j1.id],
-                                             -MAX_ANGLE,
-                                             MAX_ANGLE
-                                             )
+            limit1 = pymunk.RotaryLimitJoint(body, self.hubs[j1.id], -MAX_ANGLE, MAX_ANGLE)
 
-            limit2 = pymunk.RotaryLimitJoint(body, self.hubs[j2.id],
-                                             -MAX_ANGLE,
-                                             MAX_ANGLE
-                                             )
-            self.limits.extend([limit1,limit2])
+            limit2 = pymunk.RotaryLimitJoint(body, self.hubs[j2.id], -MAX_ANGLE, MAX_ANGLE)
+            self.limits.extend([limit1, limit2])
 
             self.space.add(limit1, limit2)
 
@@ -209,6 +209,8 @@ class CreaturePymunk:
 
             inp.extend([rx, ry, vx, vy])
 
+        inp.append(np.clip((GROUND_Y - cy) / GROUND_Y, -1, 1))
+
         return np.array(inp)
 
     def restart(self):
@@ -250,4 +252,4 @@ class CreaturePymunk:
         j = len(creature.joints)
         m = len(creature.muscles)
         b = len(creature.bones)
-        return j * 4 + b * 3 + m
+        return j * 4 + b * 3 + m + 1  # dist do zemlje
