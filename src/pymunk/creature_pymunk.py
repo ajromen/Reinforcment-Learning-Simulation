@@ -164,8 +164,8 @@ class CreaturePymunk:
                     visited[key] = True
 
                     min_angle = MIN_ANGLE
-                    # if b1.angle - b2.angle >0:
-                    #     min_angle *=-1
+                    if b1.angle - b2.angle >0:
+                        min_angle *=-1
 
                     angle = b1.angle - b2.angle
                     angle = - angle if angle < 0 else angle

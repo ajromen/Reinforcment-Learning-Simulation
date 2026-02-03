@@ -18,3 +18,6 @@ class Agent:
 
     def episode_end(self):
         raise NotImplementedError
+
+    def end_simulation(self):
+        raise NotImplementedError

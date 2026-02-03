@@ -19,8 +19,6 @@ class ReinforceAgent(Agent):
         super().__init__(layer_widths)
         self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
-        self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-
         self.policy = ReinforcePolicy(layer_widths).to(self.device)
         self.optimizer = optim.Adam(self.policy.parameters(), lr=lr)
 

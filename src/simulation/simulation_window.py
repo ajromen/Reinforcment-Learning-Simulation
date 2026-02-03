@@ -48,6 +48,7 @@ class SimulationWindow:
         i = 0
         running = True
         alt = False
+        visual = True
         while running:
             clicked = False
             for event in pygame.event.get():
@@ -73,6 +74,8 @@ class SimulationWindow:
                         self.end_simulation()
                     elif event.key == pygame.K_LALT:
                         alt = True
+                    elif event.key == pygame.K_v:
+                        visual = not visual
                 elif event.type == pygame.KEYUP:
                     if event.key == pygame.K_LALT:
                         alt = False
@@ -80,21 +83,26 @@ class SimulationWindow:
             if i % 2 == 0:
                 self.model_step()
 
-            self.run_pymunk()
+            self.run_pymunk(visual)
             if i % 2 == 0:
-                self.model_reward()
+                dist = self.model_reward()
+                if not visual and dist:
+                    print(
+                        "Episode end \n Max dist: " + str(dist) + "\n Starting episode: " + str(self.ep_num + 1))
 
             i += 1
-            self.show()
-            self.show_ui(clicked, alt)
+            if visual:
+                self.show()
+                self.show_ui(clicked, alt)
 
             if STOP_AT_SIMULATION_END and NUM_OF_EPIOSDES_PER_SIMULATION <= self.ep_num:
                 self.model.end_simulation()
                 self.end_simulation()
                 return
 
-            clock.tick(FPS)
-            pygame.display.flip()
+            if visual:
+                clock.tick(FPS)
+                pygame.display.flip()
 
     def setup_space(self):
         self.space.gravity = (0, GRAVITY)
@@ -124,7 +132,9 @@ class SimulationWindow:
         TextRenderer.render_text("Hold L_ALT to se options", 16, foreground, (10, 50), self.window)
 
         if alt:
-            TextRenderer.render_text("R: next episode", 16, foreground, (10, 70), self.window)
+            TextRenderer.render_text("R = next episode", 16, foreground, (10, 70), self.window)
+            TextRenderer.render_text("V = toggle visual (increases simulation speed to maximum)", 16, foreground,
+                                     (10, 90), self.window)
 
         if self.progress_graph:
             self.window.blit(self.progress_graph, (WINDOW_WIDTH - self.progress_graph.get_width() - 10, 10))
@@ -200,15 +210,20 @@ class SimulationWindow:
             self.ground_1.friction = GROUND_FRICTION
             self.space.add(self.ground_1)
 
-    def run_pymunk(self):
-        dt = 1 / FPS
-        for _ in range(SIMULATION_SUBSTEPS):
-            self.space.step(dt / SIMULATION_SUBSTEPS)
+    def run_pymunk(self, visual):
+        if visual:
+            dt = 1 / FPS
+            for _ in range(SIMULATION_SUBSTEPS):
+                self.space.step(dt / SIMULATION_SUBSTEPS)
+        else:
+            for _ in range(SIMULATION_SUBSTEPS):
+                self.space.step(1 / 600)
 
     def restart_episode(self):
         self.creature.restart()
         self.step = 0
-        self.dist_per_episode.append((self.max_x - WINDOW_WIDTH // 2) / 200)
+        dist = (self.max_x - WINDOW_WIDTH // 2) / 200
+        self.dist_per_episode.append(dist)
         self.ep_num += 1
         self.max_x = -math.inf
         center = self.creature.get_center()
@@ -220,6 +235,7 @@ class SimulationWindow:
         self.model.episode_end()
 
         self.progress_graph = self._plot_distance_surface()
+        return dist
 
     def model_step(self):
         self.last_center = self.curr_center
@@ -240,6 +256,7 @@ class SimulationWindow:
         cx0, _ = self.last_center
         reward = cx1 - cx0
         done = False
+        reward += cx1 - WINDOW_WIDTH // 2 # dodaje ukupnu udaljenost kao najveci faktor
         reward -= self.act_sum
         if cy > GROUND_Y + 10:
             done = True
@@ -250,4 +267,7 @@ class SimulationWindow:
         self.model.reward(reward)
 
         if done:
-            self.restart_episode()
+            dist = self.restart_episode()
+            return dist
+
+        return None
