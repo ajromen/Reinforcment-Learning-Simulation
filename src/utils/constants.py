@@ -36,7 +36,7 @@ MAX_MOTOR_RATE = 18
 EXPECTED_MAX_ANGULAR_VELOCITY = 15 #? trbalo bi da se testira i proveri sluzi za normalizaciju
 EXPECTED_MAX_LINEAR_VELOCITY = 15
 SKIP_MODEL_STEP = False
-SHOW_MUSCLES = False
+SHOW_MUSCLES = True
 
 DEBUG_DRAW = False
 

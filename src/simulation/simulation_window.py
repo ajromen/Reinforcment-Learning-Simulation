@@ -193,8 +193,8 @@ class SimulationWindow:
 
         if SHOW_MUSCLES:
             for motor in self.creature.motors:
-                a = Vector2(motor.a.position)
-                b = Vector2(motor.b.position)
+                a = Vector2(motor.a.position.x - off_x, motor.a.position.y)
+                b = Vector2(motor.b.position.x - off_x, motor.b.position.y)
 
                 d = b - a
                 length = d.length()
