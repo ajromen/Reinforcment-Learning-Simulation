@@ -1,5 +1,6 @@
 from typing import List
 
+import numpy as np
 from torch import nn
 
 
@@ -10,7 +11,7 @@ class Agent:
         self.input_size = layer_widths[0]
         self.output_size = layer_widths[-1]
 
-    def step(self, state: list[float]):
+    def step(self, state: list[float])-> np.ndarray:
         raise NotImplementedError
 
     def reward(self, reward):

@@ -117,8 +117,8 @@ class CreaturePymunk:
 
             pj1 = pymunk.PivotJoint(body, self.hubs[j1.id], p1)
             pj2 = pymunk.PivotJoint(body, self.hubs[j2.id], p2)
-            pj1.collide_bodies = OVERLAP_ALLOWED
-            pj2.collide_bodies = OVERLAP_ALLOWED
+            pj1.collide_bodies = False
+            pj2.collide_bodies = False
             self.space.add(pj1, pj2)
             self.pivots.extend([pj1, pj2])
 
@@ -163,19 +163,41 @@ class CreaturePymunk:
                         continue
                     visited[key] = True
 
-                    min_angle = MIN_ANGLE
-                    if b1.angle - b2.angle >0:
-                        min_angle *=-1
 
-                    angle = b1.angle - b2.angle
-                    angle = - angle if angle < 0 else angle
+                    # ko je levo od koga
+                    v1 = b1.rotation_vector
+                    v2 = b2.rotation_vector
 
-                    limit = pymunk.RotaryLimitJoint(b1, b2, min_angle, angle + MAX_ANGLE)
+                    x = v1.cross(v2)
+                    is_left = True if x > 0 else False
+
+                    # realni ugao izmedju njih
+                    a = (b2.angle-math.pi) % (2 * math.pi)
+                    b = b1.angle % (2 * math.pi)
+                    rest = b2.angle - b1.angle
+                    diff = (a-b) % (2 * math.pi)
+                    if diff > math.pi:
+                        diff = 2 * math.pi - diff
+
+                    MAX_BEND = diff
+
+                    if is_left:
+                        min_angle = rest - MAX_BEND
+                        max_angle = rest + MAX_BEND - MIN_ANGLE
+                    else:
+                        min_angle = rest - MAX_BEND + MIN_ANGLE
+                        max_angle = rest + MAX_ANGLE
+
+                    limit = pymunk.RotaryLimitJoint(b1, b2, min_angle, max_angle)
+
+                    # najbolja stvar ikad zaustavlja koliziju povezanih objekata
+                    limit.collide_bodies = False
                     self.limits.append(limit)
                     self.space.add(limit)
 
                     if not ADD_SPRINGS:
                         continue
+
                     center_b1 = b1.center_of_gravity
                     center_b2 = b2.center_of_gravity
                     dist = center_b1.get_distance((center_b2.x, center_b2.y))
@@ -186,7 +208,7 @@ class CreaturePymunk:
 
     def world_pos(self, x, y):
         x_pos = x * SCALE + WINDOW_WIDTH // 2 - self.bounds[0] * SCALE / 2
-        y_pos = y * SCALE - self.bounds[1] * SCALE + GROUND_Y - 1
+        y_pos = y * SCALE - self.bounds[1] * SCALE + GROUND_Y - 20
         return pymunk.Vec2d(x_pos, y_pos)
 
     def create_hub(self, pos):

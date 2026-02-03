@@ -7,23 +7,26 @@ import numpy as np
 import pygame
 import pymunk
 from matplotlib import pyplot as plt
+from pygame import Vector2
 from pymunk import pygame_util
 
 from src.agents.agent import Agent
 from src.models.creature import Creature
 from src.pymunk.creature_pymunk import CreaturePymunk
 from src.ui.colors import background_secondary, foreground, light_background, background_dots, background_primary, \
-    foreground_secondary
+    foreground_secondary, bone_rgb
+from src.ui.image_manager import ImageManager
 from src.ui.text_renderer import TextRenderer
 from src.utils.constants import FPS, WINDOW_WIDTH, WINDOW_HEIGHT, SIMULATION_SUBSTEPS, GROUND_Y, GRAVITY, \
     GROUND_FRICTION, MOTOR_MAX_FORCE, MAX_MOTOR_RATE, NUM_OF_STEPS_PER_EPISODE, NUM_OF_EPIOSDES_PER_SIMULATION, \
-    STOP_AT_SIMULATION_END
+    STOP_AT_SIMULATION_END, SKIP_MODEL_STEP, SCALE, SHOW_MUSCLES, DEBUG_DRAW
 
 
 class SimulationWindow:
     def __init__(self, creature: Creature, model: Agent):
         pygame.init()
         self.window = pygame.display.set_mode((WINDOW_WIDTH, WINDOW_HEIGHT))
+        ImageManager.load_for_simulation(ImageManager)
         self.space = pymunk.Space()
         self.creature = CreaturePymunk(creature, self.space)
         self.draw = pygame_util.DrawOptions(self.window)
@@ -44,7 +47,6 @@ class SimulationWindow:
 
     def start(self):
         clock = pygame.time.Clock()
-        random_muscle = self.creature.motors[0]
         i = 0
         running = True
         alt = False
@@ -63,6 +65,22 @@ class SimulationWindow:
                         self.creature.motors[0].rate = 4
                     elif event.key == pygame.K_DOWN:
                         self.creature.motors[0].rate = -4
+                    if event.key == pygame.K_q:
+                        self.creature.motors[1].rate = 4
+                    elif event.key == pygame.K_a:
+                        self.creature.motors[1].rate = -4
+                    if event.key == pygame.K_w:
+                        self.creature.motors[2].rate = 4
+                    elif event.key == pygame.K_s:
+                        self.creature.motors[2].rate = -4
+                    if event.key == pygame.K_e:
+                        self.creature.motors[3].rate = 4
+                    elif event.key == pygame.K_d:
+                        self.creature.motors[3].rate = -4
+                    if event.key == pygame.K_t:
+                        self.creature.motors[4].rate = 4
+                    elif event.key == pygame.K_g:
+                        self.creature.motors[4].rate = -4
 
                     elif event.key == pygame.K_LEFT:
                         self.creature.debug_move(-10)
@@ -70,8 +88,6 @@ class SimulationWindow:
                         self.creature.debug_move(10)
                     elif event.key == pygame.K_r:
                         self.restart_episode()
-                    elif event.key == pygame.K_e:
-                        self.end_simulation()
                     elif event.key == pygame.K_LALT:
                         alt = True
                     elif event.key == pygame.K_v:
@@ -124,7 +140,6 @@ class SimulationWindow:
         self.space.add(self.ground)
 
     def show_ui(self, clicked, alt):
-
         TextRenderer.render_text("Steps: " + str(self.step) + "/" + str(NUM_OF_STEPS_PER_EPISODE), 15, foreground,
                                  (10, 10), self.window)
         TextRenderer.render_text("Episodes: " + str(self.ep_num) + "/" + str(NUM_OF_EPIOSDES_PER_SIMULATION), 15,
@@ -170,7 +185,54 @@ class SimulationWindow:
 
         self.window.fill(background_secondary)
         self.draw_ground_markers()
-        self.space.debug_draw(self.draw)
+        if DEBUG_DRAW:
+            self.space.debug_draw(self.draw)
+            return
+
+        off_x = self.screen_center[0] - self.camera_offset.x - WINDOW_WIDTH // 2
+
+        if SHOW_MUSCLES:
+            for motor in self.creature.motors:
+                a = Vector2(motor.a.position)
+                b = Vector2(motor.b.position)
+
+                d = b - a
+                length = d.length()
+                if length == 0:
+                    return
+
+                angle = d.angle_to(Vector2(1, 0))
+                img = ImageManager.muscle
+
+                scaled = pygame.transform.smoothscale(img, (int(length), int(SCALE)))
+                rotated = pygame.transform.rotate(scaled, angle)
+                mid = (a + b) * 0.5
+                rect = rotated.get_rect(center=mid)
+                self.window.blit(rotated, rect)
+
+        for bone_id, bone_body in self.creature.bodies.items():
+            shape = self.creature.body_shapes[bone_id]
+            # get box corners rotated by body angle
+            points = shape.get_vertices()
+            points = [p.rotated(bone_body.angle) + bone_body.position for p in points]
+            points = [(p.x - off_x, p.y) for p in points]  # adjust camera
+            pygame.draw.polygon(self.window, bone_rgb, points)
+
+        for hub in self.creature.hubs.values():
+            pos = (hub.position.x - off_x, hub.position.y)
+            pygame.draw.circle(self.window, bone_rgb, pos, 5)
+
+        ground_a = (self.ground.a.x - off_x, self.ground.a.y)
+        ground_b = (self.ground.b.x - off_x, self.ground.b.y)
+        pygame.draw.rect(self.window, background_primary,
+                         (ground_a[0], ground_a[1], ground_b[0] - ground_a[0], 500),
+                         border_radius=5)
+
+        ground_a = (self.ground_1.a.x - off_x, self.ground_1.a.y)
+        ground_b = (self.ground_1.b.x - off_x, self.ground_1.b.y)
+        pygame.draw.rect(self.window, background_primary,
+                         (ground_a[0], ground_a[1], ground_b[0] - ground_a[0], 500),
+                         border_radius=5)
 
     def draw_ground_markers(self):
         left = -self.camera_offset.x
@@ -238,6 +300,8 @@ class SimulationWindow:
         return dist
 
     def model_step(self):
+        if SKIP_MODEL_STEP:
+            return
         self.last_center = self.curr_center
         self.curr_center = self.creature.get_center()
         self.step += 1
@@ -256,7 +320,7 @@ class SimulationWindow:
         cx0, _ = self.last_center
         reward = cx1 - cx0
         done = False
-        reward += cx1 - WINDOW_WIDTH // 2 # dodaje ukupnu udaljenost kao najveci faktor
+        reward += cx1 - WINDOW_WIDTH // 2  # dodaje ukupnu udaljenost kao najveci faktor
         reward -= self.act_sum
         if cy > GROUND_Y + 10:
             done = True
