@@ -1,5 +1,6 @@
 import pygame
 
+from src.agents.ppo_agent import PPOAgent
 from src.agents.reinforce_agent import ReinforceAgent
 from src.models.creature import Creature
 from src.pymunk.creature_pymunk import CreaturePymunk
@@ -13,6 +14,7 @@ layer_widths = [CreaturePymunk.get_number_of_inputs(creature),30,30,30,len(creat
 # ansc.start()
 
 pygame.init()
-agent = ReinforceAgent(layer_widths)
+# agent = ReinforceAgent(layer_widths)
+agent = PPOAgent(layer_widths)
 win = SimulationWindow(creature,agent)
 win.start()
