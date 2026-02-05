@@ -14,7 +14,9 @@ from src.agents.agent import Agent
 
 
 class ReinforceAgent(Agent):
-    def __init__(self, layer_widths: List[int], discount_factor: float = 0.99, lr: float = 1e-3,
+    def __init__(self, layer_widths: List[int],
+                 discount_factor: float = 0.99,
+                 lr: float = 1e-3,
                  input_file: str = None):
         super().__init__(layer_widths)
         self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
@@ -28,7 +30,6 @@ class ReinforceAgent(Agent):
         self.rewards = []
         self.saved_log_probs = []
 
-
     def step(self, state: list[float]):
         state_tensor = FloatTensor(state).to(self.device)
 
@@ -39,7 +40,7 @@ class ReinforceAgent(Agent):
         dist = torch.distributions.TransformedDistribution(base_dist, [transform])
 
         action = dist.sample()
-        log_prob = dist.log_prob(action).sum()
+        log_prob = dist.log_prob(action).sum(dim=-1)
 
         self.saved_log_probs.append(log_prob)
         return action.detach().cpu().numpy()  # cpu numpy ne zna za gpu
@@ -48,7 +49,7 @@ class ReinforceAgent(Agent):
         self.rewards.append(reward)
 
     def episode_end(self):
-        if len(self.rewards)==0 or len(self.saved_log_probs)==0:
+        if len(self.rewards) == 0 or len(self.saved_log_probs) == 0:
             return
         returns = []
         G = 0.0
