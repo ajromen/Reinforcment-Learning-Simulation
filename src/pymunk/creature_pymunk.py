@@ -1,4 +1,5 @@
 import math
+import sys
 from typing import Dict
 
 import numpy as np
@@ -297,6 +298,11 @@ class CreaturePymunk:
         self.limits.clear()
 
         self.creature_to_pymunk()
+        
+    def is_upside_down(self, threshold: float = 0.3) -> bool:
+    
+        return False
+
 
     @staticmethod
     def get_number_of_inputs(creature: Creature):
@@ -305,5 +311,6 @@ class CreaturePymunk:
         b = len(creature.bones)
         return j * 4 + b * 3 + m + 1  # dist do zemlje
 
-    def motor_set_rate(self):
-        pass
+    
+    
+    

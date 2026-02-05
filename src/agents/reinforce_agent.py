@@ -12,9 +12,29 @@ rng = np.random.default_rng()
 
 from src.agents.agent import Agent
 
+class Batch:
+    def __init__(self):
+        self.rewards: List[float] = []
+        self.log_probs: List[torch.Tensor] = []
+        self.rtgs: List[float] = []
+        
+    def add_reward(self, reward):
+        self.rewards.append(reward)
+
+    def add_log_prob(self, log_prob):
+        self.log_probs.append(log_prob)
+
+    def calculate_rtgs(self, discount_factor: float):
+        self.rtgs = []
+        G = 0.0
+        for r in reversed(self.rewards):
+            G = r + discount_factor * G
+            self.rtgs.insert(0, G)
+
 
 class ReinforceAgent(Agent):
     def __init__(self, layer_widths: List[int],
+                 batch_size: int = 12,
                  discount_factor: float = 0.99,
                  lr: float = 1e-3,
                  input_file: str = None):
@@ -26,9 +46,11 @@ class ReinforceAgent(Agent):
 
         self.discount_factor = discount_factor
         self.input_file = input_file
-
-        self.rewards = []
-        self.saved_log_probs = []
+        
+        self.batches: List[Batch] = []
+        self.max_batches = batch_size
+        self.count = 0
+        self.curr_batch = Batch()
 
     def step(self, state: list[float]):
         state_tensor = FloatTensor(state).to(self.device)
@@ -42,34 +64,40 @@ class ReinforceAgent(Agent):
         action = dist.sample()
         log_prob = dist.log_prob(action).sum(dim=-1)
 
-        self.saved_log_probs.append(log_prob)
+        self.curr_batch.add_log_prob(log_prob)
         return action.detach().cpu().numpy()  # cpu numpy ne zna za gpu
 
     def reward(self, reward):
-        self.rewards.append(reward)
+        self.curr_batch.add_reward(reward)
+        
+    def _update(self):
+        log_probs = []
+        rtgs = []
 
-    def episode_end(self):
-        if len(self.rewards) == 0 or len(self.saved_log_probs) == 0:
-            return
-        returns = []
-        G = 0.0
-        for r in reversed(self.rewards):
-            G = r + self.discount_factor * G
-            returns.insert(0, G)
+        for batch in self.batches:
+            batch.calculate_rtgs(self.discount_factor)
+            log_probs.extend(batch.log_probs)
+            rtgs.extend(batch.rtgs)
 
-        returns = torch.tensor(returns, device=self.device)
-        returns = (returns - returns.mean()) / (returns.std() + 1e-8)
+        log_probs = torch.stack(log_probs)
+        rtgs = torch.tensor(rtgs, device=self.device)
+        rtgs = (rtgs - rtgs.mean()) / (rtgs.std() + 1e-8)
 
-        loss = torch.stack(
-            [-log_prob * G for log_prob, G in zip(self.saved_log_probs, returns)]
-        ).sum()
-
+        loss = -(log_probs * rtgs).mean()
         self.optimizer.zero_grad()
         loss.backward()
         self.optimizer.step()
 
-        self.rewards.clear()
-        self.saved_log_probs.clear()
+    def episode_end(self):
+        self.batches.append(self.curr_batch)
+        self.count += 1
+
+        if self.count == self.max_batches:
+            self.count = 0
+            self._update()
+            self.batches.clear()
+
+        self.curr_batch = Batch()
 
     def end_simulation(self):
         # save params and create markdown file

@@ -109,7 +109,7 @@ class SimulationWindow:
             i += 1
             if visual:
                 self.show()
-                self.show_ui(clicked, alt)
+                self.show_ui(clicked, alt, clock.get_fps())
 
             if STOP_AT_SIMULATION_END and NUM_OF_EPIOSDES_PER_SIMULATION <= self.ep_num:
                 self.model.end_simulation()
@@ -139,17 +139,17 @@ class SimulationWindow:
         self.space.add(self.ground_1)
         self.space.add(self.ground)
 
-    def show_ui(self, clicked, alt):
+    def show_ui(self, clicked, alt, fps):
         TextRenderer.render_text("Steps: " + str(self.step) + "/" + str(NUM_OF_STEPS_PER_EPISODE), 15, foreground,
                                  (10, 10), self.window)
         TextRenderer.render_text("Episodes: " + str(self.ep_num) + "/" + str(NUM_OF_EPIOSDES_PER_SIMULATION), 15,
                                  foreground, (10, 30), self.window)
         TextRenderer.render_text("Hold L_ALT to se options", 16, foreground, (10, 50), self.window)
-
         if alt:
             TextRenderer.render_text("R = next episode", 16, foreground, (10, 70), self.window)
             TextRenderer.render_text("V = toggle visual (increases simulation speed to maximum)", 16, foreground,
                                      (10, 90), self.window)
+            TextRenderer.render_text("FPS: "+str(fps), 16, foreground, (10, 110), self.window)
 
         if self.progress_graph:
             self.window.blit(self.progress_graph, (WINDOW_WIDTH - self.progress_graph.get_width() - 10, 10))
@@ -273,14 +273,10 @@ class SimulationWindow:
             self.space.add(self.ground_1)
 
     def run_pymunk(self, visual):
-        if visual:
-            dt = 1 / FPS
-            substep_dt = dt / SIMULATION_SUBSTEPS
-        else:
-            substep_dt = 1 / 60 
+        PHYSICS_DT = 1 / 60
 
         for _ in range(SIMULATION_SUBSTEPS):
-            self.space.step(substep_dt)
+            self.space.step(PHYSICS_DT / SIMULATION_SUBSTEPS)
 
     def restart_episode(self):
         self.creature.restart()
@@ -311,7 +307,7 @@ class SimulationWindow:
         self.act_sum = 0
         for i, a in enumerate(activation):
             self.creature.motors[i].rate = float(a) * MAX_MOTOR_RATE
-            self.act_sum += a
+            self.act_sum += abs(a)
 
         if self.curr_center[0] > self.max_x:
             self.max_x = self.curr_center[0]
@@ -319,10 +315,14 @@ class SimulationWindow:
     def model_reward(self):
         cx1, cy = self.curr_center
         cx0, _ = self.last_center
-        reward = cx1 - cx0
+        reward = (cx1 - cx0)*5
         done = False
-        reward += cx1 - WINDOW_WIDTH // 2  # dodaje ukupnu udaljenost kao najveci faktor
+
+        # reward += cx1 - WINDOW_WIDTH // 2  # dodaje ukupnu udaljenost kao najveci faktor
         reward -= self.act_sum
+        if self.creature.is_upside_down():
+            reward -= 300
+            done = True
         if cy > GROUND_Y + 10:
             done = True
             reward -= 100

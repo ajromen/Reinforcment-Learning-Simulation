@@ -14,7 +14,7 @@ layer_widths = [CreaturePymunk.get_number_of_inputs(creature),30,30,30,len(creat
 # ansc.start()
 
 pygame.init()
-# agent = ReinforceAgent(layer_widths)
-agent = PPOAgent(layer_widths)
+agent = ReinforceAgent(layer_widths)
+# agent = PPOAgent(layer_widths)
 win = SimulationWindow(creature,agent)
 win.start()
