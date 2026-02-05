@@ -1,6 +1,7 @@
 import io
 import math
 import sys
+import time
 from typing import List
 
 import numpy as np
@@ -40,10 +41,13 @@ class SimulationWindow:
         self.screen_center = pygame.math.Vector2(WINDOW_WIDTH // 2, WINDOW_HEIGHT // 2)
 
         self.dist_per_episode = []
+        self.max_dist = 0
         self.ep_num = 0
         self.max_x = -math.inf
         self.progress_graph = None
         self.act_sum = 0
+        self.last_reward = 0
+        self.start_time = time.time()
 
     def start(self):
         clock = pygame.time.Clock()
@@ -51,8 +55,8 @@ class SimulationWindow:
         running = True
         alt = False
         visual = True
+        ctrl = False
         while running:
-            clicked = False
             for event in pygame.event.get():
                 if event.type == pygame.QUIT:
                     pygame.quit()
@@ -61,40 +65,19 @@ class SimulationWindow:
                     if event.button == 1:
                         clicked = True
                 elif event.type == pygame.KEYDOWN:
-                    if event.key == pygame.K_UP:
-                        self.creature.motors[0].rate = 4
-                    elif event.key == pygame.K_DOWN:
-                        self.creature.motors[0].rate = -4
-                    if event.key == pygame.K_q:
-                        self.creature.motors[1].rate = 4
-                    elif event.key == pygame.K_a:
-                        self.creature.motors[1].rate = -4
-                    if event.key == pygame.K_w:
-                        self.creature.motors[2].rate = 4
-                    elif event.key == pygame.K_s:
-                        self.creature.motors[2].rate = -4
-                    if event.key == pygame.K_e:
-                        self.creature.motors[3].rate = 4
-                    elif event.key == pygame.K_d:
-                        self.creature.motors[3].rate = -4
-                    if event.key == pygame.K_t:
-                        self.creature.motors[4].rate = 4
-                    elif event.key == pygame.K_g:
-                        self.creature.motors[4].rate = -4
-
-                    elif event.key == pygame.K_LEFT:
-                        self.creature.debug_move(-10)
-                    elif event.key == pygame.K_RIGHT:
-                        self.creature.debug_move(10)
-                    elif event.key == pygame.K_r:
+                    if event.key == pygame.K_r:
                         self.restart_episode()
                     elif event.key == pygame.K_LALT:
                         alt = True
+                    elif event.key == pygame.K_LCTRL:
+                        ctrl = True
                     elif event.key == pygame.K_v:
                         visual = not visual
                 elif event.type == pygame.KEYUP:
                     if event.key == pygame.K_LALT:
                         alt = False
+                    if event.key == pygame.K_LCTRL:
+                        ctrl = False
 
             if i % 2 == 0:
                 self.model_step()
@@ -109,7 +92,7 @@ class SimulationWindow:
             i += 1
             if visual:
                 self.show()
-                self.show_ui(clicked, alt, clock.get_fps())
+                self.show_ui(alt, ctrl, clock.get_fps())
 
             if STOP_AT_SIMULATION_END and NUM_OF_EPIOSDES_PER_SIMULATION <= self.ep_num:
                 self.model.end_simulation()
@@ -128,7 +111,6 @@ class SimulationWindow:
         print(str(self.dist_per_episode))
         while True:
             pass
-        pass
 
     def _place_ground(self):
         static_body = self.space.static_body
@@ -139,18 +121,37 @@ class SimulationWindow:
         self.space.add(self.ground_1)
         self.space.add(self.ground)
 
-    def show_ui(self, clicked, alt, fps):
+    def show_ui(self, alt, ctrl, fps):
         TextRenderer.render_text("Steps: " + str(self.step) + "/" + str(NUM_OF_STEPS_PER_EPISODE), 15, foreground,
                                  (10, 10), self.window)
         TextRenderer.render_text("Episodes: " + str(self.ep_num) + "/" + str(NUM_OF_EPIOSDES_PER_SIMULATION), 15,
                                  foreground, (10, 30), self.window)
-        TextRenderer.render_text("Hold L_ALT to se options", 16, foreground, (10, 50), self.window)
-        if alt:
-            TextRenderer.render_text("R = next episode", 16, foreground, (10, 70), self.window)
-            TextRenderer.render_text("V = toggle visual (increases simulation speed to maximum)", 16, foreground,
-                                     (10, 90), self.window)
-            TextRenderer.render_text("FPS: "+str(fps), 16, foreground, (10, 110), self.window)
 
+        if alt:
+            TextRenderer.render_text("R = next episode", 16, foreground, (10, 50), self.window)
+            TextRenderer.render_text("V = toggle visual (increases simulation speed to maximum)", 16, foreground,
+                                     (10, 70), self.window)
+        else:
+            TextRenderer.render_text("Hold L_ALT to se options", 16, foreground, (10, 50), self.window)
+
+        if ctrl:
+            TextRenderer.render_text("FPS: " + f'{fps:.2f}', 16, foreground, (WINDOW_WIDTH - 300, 210), self.window)
+            TextRenderer.render_text("Max dist (episode): " + f"{(self.max_x - WINDOW_WIDTH // 2) / 200:.2f}m", 16,
+                                     foreground,
+                                     (WINDOW_WIDTH - 300, 230), self.window)
+            TextRenderer.render_text("Max dist (total): " + f'{self.max_dist:.2f}m', 16, foreground,
+                                     (WINDOW_WIDTH - 300, 250), self.window)
+            TextRenderer.render_text("Last reward: " + f"{self.last_reward:.2f}", 16, foreground,
+                                     (WINDOW_WIDTH - 300, 270),
+                                     self.window)
+
+            elapsed = int(time.time() - self.start_time)
+            formatted = f"{elapsed // 3600:02d}h:{(elapsed % 3600) // 60:02d}m:{elapsed % 60:02d}s"
+            TextRenderer.render_text("Elapsed time: " + formatted, 16, foreground, (WINDOW_WIDTH - 300, 290),
+                                     self.window)
+        else:
+            TextRenderer.render_text("Hold L_CTRL to see more info", 16, foreground, (WINDOW_WIDTH - 300, 210),
+                                     self.window)
         if self.progress_graph:
             self.window.blit(self.progress_graph, (WINDOW_WIDTH - self.progress_graph.get_width() - 10, 10))
 
@@ -283,6 +284,8 @@ class SimulationWindow:
         self.step = 0
         dist = (self.max_x - WINDOW_WIDTH // 2) / 200
         self.dist_per_episode.append(dist)
+        if dist > self.max_dist:
+            self.max_dist = dist
         self.ep_num += 1
         self.max_x = -math.inf
         center = self.creature.get_center()
@@ -315,7 +318,7 @@ class SimulationWindow:
     def model_reward(self):
         cx1, cy = self.curr_center
         cx0, _ = self.last_center
-        reward = (cx1 - cx0)*5
+        reward = (cx1 - cx0) * 5
         done = False
 
         # reward += cx1 - WINDOW_WIDTH // 2  # dodaje ukupnu udaljenost kao najveci faktor
@@ -330,6 +333,7 @@ class SimulationWindow:
             done = True
 
         self.model.reward(reward)
+        self.last_reward = reward
 
         if done:
             dist = self.restart_episode()
