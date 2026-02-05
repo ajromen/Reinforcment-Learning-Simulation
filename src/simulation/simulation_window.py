@@ -273,10 +273,14 @@ class SimulationWindow:
             self.space.add(self.ground_1)
 
     def run_pymunk(self, visual):
-        PHYSICS_DT = 1 / 60
+        if visual:
+            dt = 1 / FPS
+            substep_dt = dt / SIMULATION_SUBSTEPS
+        else:
+            substep_dt = 1 / 60 
 
         for _ in range(SIMULATION_SUBSTEPS):
-            self.space.step(PHYSICS_DT / SIMULATION_SUBSTEPS)
+            self.space.step(substep_dt)
 
     def restart_episode(self):
         self.creature.restart()
