@@ -20,5 +20,5 @@ class Agent:
     def episode_end(self):
         raise NotImplementedError
 
-    def end_simulation(self):
+    def end_simulation(self, filepath):
         raise NotImplementedError

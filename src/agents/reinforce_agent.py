@@ -12,12 +12,13 @@ rng = np.random.default_rng()
 
 from src.agents.agent import Agent
 
+
 class Batch:
     def __init__(self):
         self.rewards: List[float] = []
         self.log_probs: List[torch.Tensor] = []
         self.rtgs: List[float] = []
-        
+
     def add_reward(self, reward):
         self.rewards.append(reward)
 
@@ -43,10 +44,11 @@ class ReinforceAgent(Agent):
 
         self.policy = ReinforcePolicy(layer_widths).to(self.device)
         self.optimizer = optim.Adam(self.policy.parameters(), lr=lr)
+        self.lr = lr
 
         self.discount_factor = discount_factor
         self.input_file = input_file
-        
+
         self.batches: List[Batch] = []
         self.max_batches = batch_size
         self.count = 0
@@ -69,7 +71,7 @@ class ReinforceAgent(Agent):
 
     def reward(self, reward):
         self.curr_batch.add_reward(reward)
-        
+
     def _update(self):
         log_probs = []
         rtgs = []
@@ -99,9 +101,37 @@ class ReinforceAgent(Agent):
 
         self.curr_batch = Batch()
 
-    def end_simulation(self):
-        # save params and create markdown file
-        pass
+    def get_num_of_parameters(self):
+        return sum(p.numel() for p in self.policy.parameters())
 
-    def load_from_file(self):
-        pass
+    def end_simulation(self, filepath):
+        checkpoint = {
+            "model_state_dict": self.policy.state_dict(),
+            "optimizer_state_dict": self.optimizer.state_dict(),
+
+            "layer_widths": self.layer_widths,
+            "discount_factor": self.discount_factor,
+            "learning_rate": self.lr,
+            "batch_size": self.max_batches,
+
+            "device": str(self.device),
+            "activation": self.policy.activation_name,
+            "num_parameters": self.get_num_of_parameters(),
+        }
+
+        torch.save(checkpoint, filepath)
+
+    def load_from_file(self, filename: str):
+        saved = torch.load(filename, map_location=self.device)
+
+        self.policy.load_state_dict(saved["model_state_dict"])
+        self.optimizer.load_state_dict(saved["optimizer_state_dict"])
+
+        self.layer_widths = saved["layer_widths"]
+        self.discount_factor = saved["discount_factor"]
+        self.lr = saved["learning_rate"]
+        self.max_batches = saved["batch_size"]
+
+        self.batches.clear()
+        self.curr_batch = Batch()
+        self.count = 0

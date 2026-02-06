@@ -14,6 +14,7 @@ from pymunk import pygame_util
 from src.agents.agent import Agent
 from src.models.creature import Creature
 from src.pymunk.creature_pymunk import CreaturePymunk
+from src.simulation.simulation_stats import SimulationStats
 from src.ui.colors import background_secondary, foreground, light_background, background_dots, background_primary, \
     foreground_secondary, bone_rgb
 from src.ui.image_manager import ImageManager
@@ -24,7 +25,7 @@ from src.utils.constants import FPS, WINDOW_WIDTH, WINDOW_HEIGHT, SIMULATION_SUB
 
 
 class SimulationWindow:
-    def __init__(self, creature: Creature, model: Agent):
+    def __init__(self, creature: Creature, model: Agent, save_path):
         pygame.init()
         self.window = pygame.display.set_mode((WINDOW_WIDTH, WINDOW_HEIGHT))
         ImageManager.load_for_simulation(ImageManager)
@@ -36,18 +37,22 @@ class SimulationWindow:
         self.step = 0
         self.last_center: tuple[float, float] = self.creature.get_center()
         self.curr_center: tuple[float, float] = self.last_center
+        self.save_path = save_path
 
         self.camera_offset = pygame.math.Vector2(0, 0)
         self.screen_center = pygame.math.Vector2(WINDOW_WIDTH // 2, WINDOW_HEIGHT // 2)
 
         self.dist_per_episode = []
-        self.max_dist = 0
-        self.ep_num = 0
-        self.max_x = -math.inf
         self.progress_graph = None
         self.act_sum = 0
         self.last_reward = 0
         self.start_time = time.time()
+
+        self.stats = SimulationStats(NUM_OF_STEPS_PER_EPISODE)
+
+        self.show_muscles = SHOW_MUSCLES
+        self.debug_view = DEBUG_DRAW
+        self.skip_model = SKIP_MODEL_STEP
 
     def start(self):
         clock = pygame.time.Clock()
@@ -59,20 +64,29 @@ class SimulationWindow:
         while running:
             for event in pygame.event.get():
                 if event.type == pygame.QUIT:
+                    self.end_simulation()
                     pygame.quit()
                     return
-                elif event.type == pygame.MOUSEBUTTONDOWN:
-                    if event.button == 1:
-                        clicked = True
                 elif event.type == pygame.KEYDOWN:
-                    if event.key == pygame.K_r:
+                    if event.key == pygame.K_v:
+                        visual = not visual
+                    if not visual:
+                        continue
+                    elif event.key == pygame.K_n:
                         self.restart_episode()
                     elif event.key == pygame.K_LALT:
                         alt = True
                     elif event.key == pygame.K_LCTRL:
                         ctrl = True
-                    elif event.key == pygame.K_v:
-                        visual = not visual
+                    elif event.key == pygame.K_e:
+                        self.end_simulation()
+                        return
+                    elif event.key == pygame.K_m:
+                        self.show_muscles = not self.show_muscles
+                    elif event.key == pygame.K_d:
+                        self.debug_view = not self.debug_view
+                    elif event.key == pygame.K_p:
+                        self.skip_model = not self.skip_model
                 elif event.type == pygame.KEYUP:
                     if event.key == pygame.K_LALT:
                         alt = False
@@ -87,15 +101,15 @@ class SimulationWindow:
                 dist = self.model_reward()
                 if not visual and dist:
                     print(
-                        "Episode end \n Max dist: " + str(dist) + "\n Starting episode: " + str(self.ep_num + 1))
+                        "Episode end \n Max dist: " + str(dist) + "\n Starting episode: " + str(
+                            self.stats.number_of_episodes + 1))
 
             i += 1
             if visual:
                 self.show()
                 self.show_ui(alt, ctrl, clock.get_fps())
 
-            if STOP_AT_SIMULATION_END and NUM_OF_EPIOSDES_PER_SIMULATION <= self.ep_num:
-                self.model.end_simulation()
+            if STOP_AT_SIMULATION_END and NUM_OF_EPIOSDES_PER_SIMULATION <= self.stats.number_of_episodes:
                 self.end_simulation()
                 return
 
@@ -108,9 +122,8 @@ class SimulationWindow:
         self._place_ground()
 
     def end_simulation(self):
-        print(str(self.dist_per_episode))
-        while True:
-            pass
+        self.model.end_simulation(self.save_path + "model.pt")
+        self.stats.save_to_file(self.save_path + "stats.json")
 
     def _place_ground(self):
         static_body = self.space.static_body
@@ -124,22 +137,28 @@ class SimulationWindow:
     def show_ui(self, alt, ctrl, fps):
         TextRenderer.render_text("Steps: " + str(self.step) + "/" + str(NUM_OF_STEPS_PER_EPISODE), 15, foreground,
                                  (10, 10), self.window)
-        TextRenderer.render_text("Episodes: " + str(self.ep_num) + "/" + str(NUM_OF_EPIOSDES_PER_SIMULATION), 15,
-                                 foreground, (10, 30), self.window)
+        TextRenderer.render_text(
+            "Episodes: " + str(self.stats.number_of_episodes) + "/" + str(NUM_OF_EPIOSDES_PER_SIMULATION), 15,
+            foreground, (10, 30), self.window)
 
         if alt:
-            TextRenderer.render_text("R = next episode", 16, foreground, (10, 50), self.window)
-            TextRenderer.render_text("V = toggle visual (increases simulation speed to maximum)", 16, foreground,
+            TextRenderer.render_text("N = Next episode", 16, foreground, (10, 50), self.window)
+            TextRenderer.render_text("V = Toggle visual (increases simulation speed to maximum)", 16, foreground,
                                      (10, 70), self.window)
+            TextRenderer.render_text("E = End simulation", 16, foreground, (10, 90), self.window)
+            TextRenderer.render_text("M = Remove muscles visually", 16, foreground, (10, 110), self.window)
+            TextRenderer.render_text("D = Debug view", 16, foreground, (10, 130), self.window)
+            TextRenderer.render_text("P = Pause/Unpause model (only for testing)", 16, foreground, (10, 150),
+                                     self.window)
         else:
             TextRenderer.render_text("Hold L_ALT to se options", 16, foreground, (10, 50), self.window)
 
         if ctrl:
             TextRenderer.render_text("FPS: " + f'{fps:.2f}', 16, foreground, (WINDOW_WIDTH - 300, 210), self.window)
-            TextRenderer.render_text("Max dist (episode): " + f"{(self.max_x - WINDOW_WIDTH // 2) / 200:.2f}m", 16,
+            TextRenderer.render_text("Max dist (episode): " + f"{self.stats.get_dist_m():.2f}m", 16,
                                      foreground,
                                      (WINDOW_WIDTH - 300, 230), self.window)
-            TextRenderer.render_text("Max dist (total): " + f'{self.max_dist:.2f}m', 16, foreground,
+            TextRenderer.render_text("Max dist (total): " + f'{self.stats.max_dist:.2f}m', 16, foreground,
                                      (WINDOW_WIDTH - 300, 250), self.window)
             TextRenderer.render_text("Last reward: " + f"{self.last_reward:.2f}", 16, foreground,
                                      (WINDOW_WIDTH - 300, 270),
@@ -186,13 +205,13 @@ class SimulationWindow:
 
         self.window.fill(background_secondary)
         self.draw_ground_markers()
-        if DEBUG_DRAW:
+        if self.debug_view:
             self.space.debug_draw(self.draw)
             return
 
         off_x = self.screen_center[0] - self.camera_offset.x - WINDOW_WIDTH // 2
 
-        if SHOW_MUSCLES:
+        if self.show_muscles:
             for motor in self.creature.motors:
                 a = Vector2(motor.a.position.x - off_x, motor.a.position.y)
                 b = Vector2(motor.b.position.x - off_x, motor.b.position.y)
@@ -223,14 +242,14 @@ class SimulationWindow:
             pos = (hub.position.x - off_x, hub.position.y)
             pygame.draw.circle(self.window, bone_rgb, pos, 5)
 
-        ground_a = (self.ground.a.x - off_x, self.ground.a.y)
-        ground_b = (self.ground.b.x - off_x, self.ground.b.y)
+        ground_a = (self.ground.a.x - off_x, self.ground.a.y - 5)
+        ground_b = (self.ground.b.x - off_x, self.ground.b.y - 5)
         pygame.draw.rect(self.window, background_primary,
                          (ground_a[0], ground_a[1], ground_b[0] - ground_a[0], 500),
                          border_radius=5)
 
-        ground_a = (self.ground_1.a.x - off_x, self.ground_1.a.y)
-        ground_b = (self.ground_1.b.x - off_x, self.ground_1.b.y)
+        ground_a = (self.ground_1.a.x - off_x, self.ground_1.a.y - 5)
+        ground_b = (self.ground_1.b.x - off_x, self.ground_1.b.y - 5)
         pygame.draw.rect(self.window, background_primary,
                          (ground_a[0], ground_a[1], ground_b[0] - ground_a[0], 500),
                          border_radius=5)
@@ -282,12 +301,12 @@ class SimulationWindow:
     def restart_episode(self):
         self.creature.restart()
         self.step = 0
-        dist = (self.max_x - WINDOW_WIDTH // 2) / 200
+        dist = self.stats.get_dist_m()
         self.dist_per_episode.append(dist)
-        if dist > self.max_dist:
-            self.max_dist = dist
-        self.ep_num += 1
-        self.max_x = -math.inf
+        if dist > self.stats.max_dist:
+            self.stats.max_dist = dist
+
+        self.stats.episode_end(self.step)
         center = self.creature.get_center()
         self.last_center = center
         self.curr_center = center
@@ -300,7 +319,7 @@ class SimulationWindow:
         return dist
 
     def model_step(self):
-        if SKIP_MODEL_STEP:
+        if self.skip_model:
             return
         self.last_center = self.curr_center
         self.curr_center = self.creature.get_center()
@@ -312,8 +331,8 @@ class SimulationWindow:
             self.creature.motors[i].rate = float(a) * MAX_MOTOR_RATE
             self.act_sum += abs(a)
 
-        if self.curr_center[0] > self.max_x:
-            self.max_x = self.curr_center[0]
+        if self.curr_center[0] > self.stats.max_x_episode:
+            self.stats.max_x_episode = self.curr_center[0]
 
     def model_reward(self):
         cx1, cy = self.curr_center

@@ -11,6 +11,7 @@ class ReinforcePolicy(nn.Module):
 
         self.mean = nn.Linear(layer_widths[-2], layer_widths[-1])
         self.log_std = nn.Parameter(torch.zeros(layer_widths[-1]))
+        self.activation_name = "leaky_relu"
 
     def forward(self, x: Tensor):
         for layer in self.layers:
