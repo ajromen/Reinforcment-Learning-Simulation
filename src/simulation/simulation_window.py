@@ -14,23 +14,26 @@ from pymunk import pygame_util
 from src.agents.agent import Agent
 from src.models.creature import Creature
 from src.pymunk.creature_pymunk import CreaturePymunk
+from src.simulation.simulation_settings import SimulationSettings
 from src.simulation.simulation_stats import SimulationStats
 from src.ui.colors import background_secondary, foreground, light_background, background_dots, background_primary, \
     foreground_secondary, bone_rgb
 from src.ui.image_manager import ImageManager
 from src.ui.text_renderer import TextRenderer
-from src.utils.constants import FPS, WINDOW_WIDTH, WINDOW_HEIGHT, SIMULATION_SUBSTEPS, GROUND_Y, GRAVITY, \
-    GROUND_FRICTION, MOTOR_MAX_FORCE, MAX_MOTOR_RATE, NUM_OF_STEPS_PER_EPISODE, NUM_OF_EPIOSDES_PER_SIMULATION, \
-    STOP_AT_SIMULATION_END, SKIP_MODEL_STEP, SCALE, SHOW_MUSCLES, DEBUG_DRAW
+
+from src.ui.ui_settings import FPS, WINDOW_WIDTH, WINDOW_HEIGHT
+from src.simulation.simulation_settings import GROUND_Y, GROUND_FRICTION, NUM_OF_EPIOSDES_PER_SIMULATION, \
+    NUM_OF_STEPS_PER_EPISODE, STOP_AT_SIMULATION_END, SKIP_MODEL_STEP, SHOW_MUSCLES, DEBUG_DRAW
 
 
 class SimulationWindow:
-    def __init__(self, creature: Creature, model: Agent, save_path):
+    def __init__(self, creature: Creature, model: Agent, save_path, load_old=False):
         pygame.init()
         self.window = pygame.display.set_mode((WINDOW_WIDTH, WINDOW_HEIGHT))
         ImageManager.load_for_simulation(ImageManager)
         self.space = pymunk.Space()
-        self.creature = CreaturePymunk(creature, self.space)
+        self.settings = SimulationSettings()
+        self.creature = CreaturePymunk(creature, self.space, self.settings)
         self.draw = pygame_util.DrawOptions(self.window)
         self.setup_space()
         self.model = model
@@ -114,13 +117,19 @@ class SimulationWindow:
                 clock.tick(FPS)
                 pygame.display.flip()
 
+    def load_everything(self):
+        self.model.load_from_file(self.save_path + "model.pt")
+        self.stats.load_from_file(self.save_path + "stats.json")
+        self.settings.load_from_file(self.save_path + "settings.json")
+
     def setup_space(self):
-        self.space.gravity = (0, GRAVITY)
+        self.space.gravity = (0, self.settings.gravity)
         self._place_ground()
 
     def end_simulation(self):
         self.model.end_simulation(self.save_path + "model.pt")
         self.stats.save_to_file(self.save_path + "stats.json")
+        self.settings.save_to_file(self.save_path + "settings.json")
 
     def _place_ground(self):
         static_body = self.space.static_body
@@ -170,7 +179,8 @@ class SimulationWindow:
             TextRenderer.render_text("Last episode rewards: " + self.stats.get_last_episode_reward(), 16, foreground,
                                      (WINDOW_WIDTH - 300, 330),
                                      self.window)
-            TextRenderer.render_text("Last episode activation: " + self.stats.get_last_episode_activation(), 16, foreground,
+            TextRenderer.render_text("Last episode activation: " + self.stats.get_last_episode_activation(), 16,
+                                     foreground,
                                      (WINDOW_WIDTH - 300, 350),
                                      self.window)
         else:
@@ -231,7 +241,7 @@ class SimulationWindow:
                 angle = d.angle_to(Vector2(1, 0))
                 img = ImageManager.muscle
 
-                scaled = pygame.transform.smoothscale(img, (int(length), int(SCALE)))
+                scaled = pygame.transform.smoothscale(img, (int(length), int(self.settings.scale)))
                 rotated = pygame.transform.rotate(scaled, angle)
                 mid = (a + b) * 0.5
                 rect = rotated.get_rect(center=mid)
@@ -302,8 +312,8 @@ class SimulationWindow:
     def run_pymunk(self, visual):
         PHYSICS_DT = 1 / 60
 
-        for _ in range(SIMULATION_SUBSTEPS):
-            self.space.step(PHYSICS_DT / SIMULATION_SUBSTEPS)
+        for _ in range(self.settings.substeps):
+            self.space.step(PHYSICS_DT / self.settings.substeps)
 
     def restart_episode(self):
         self.creature.restart()
@@ -328,7 +338,7 @@ class SimulationWindow:
 
         self.stats.act_sum = 0
         for i, a in enumerate(activation):
-            self.creature.motors[i].rate = float(a) * MAX_MOTOR_RATE
+            self.creature.motors[i].rate = float(a) * self.settings.max_motor_rate
             self.stats.act_sum += abs(a)
         self.stats.activations += self.stats.act_sum
 

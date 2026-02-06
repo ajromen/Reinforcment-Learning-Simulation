@@ -2,7 +2,7 @@ from PyQt6.QtWidgets import QWidget
 
 from src.ui.colors import foreground, background_secondary
 from src.ui.qt.qt_utils import PILL_SCROLLBAR
-from src.utils.constants import APP_NAME
+from src.ui.ui_settings import APP_NAME
 
 
 class MainWindow(QWidget):

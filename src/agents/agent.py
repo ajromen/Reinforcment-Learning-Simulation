@@ -20,5 +20,8 @@ class Agent:
     def episode_end(self):
         raise NotImplementedError
 
-    def end_simulation(self, filepath):
+    def end_simulation(self, filepath): # tj save to file
         raise NotImplementedError
+
+    def load_from_file(self, filename):
+        pass

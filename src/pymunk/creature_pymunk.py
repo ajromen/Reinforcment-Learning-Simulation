@@ -7,13 +7,13 @@ import pymunk
 from pymunk import Body, Poly, SimpleMotor
 
 from src.models.creature import Creature
-from src.utils.constants import SIMULATION_BONE_WIDTH, BODY_FRICTION, BODY_MASS, SCALE, OVERLAP_ALLOWED, \
-    MOTOR_MAX_FORCE, MAX_JOINT_ANGLE, WINDOW_WIDTH, WINDOW_HEIGHT, GROUND_Y, MAX_MOTOR_RATE, \
-    EXPECTED_MAX_ANGULAR_VELOCITY, EXPECTED_MAX_LINEAR_VELOCITY, MIN_JOINT_ANGLE, JOINT_LIMITS, ADD_SPRINGS
+from src.simulation.simulation_settings import SimulationSettings
+from src.ui.ui_settings import WINDOW_WIDTH
+from src.simulation.simulation_settings import GROUND_Y
 
 
 class CreaturePymunk:
-    def __init__(self, creature: Creature, space):
+    def __init__(self, creature: Creature, space, settings: SimulationSettings):
         self.creature = creature
         self.space = space
 
@@ -25,6 +25,7 @@ class CreaturePymunk:
         self.pivots = []
         self.limits = []
         self.num_of_joints = len(creature.joints)
+        self.settings = settings
 
         self.creature_to_pymunk()
 
@@ -35,7 +36,7 @@ class CreaturePymunk:
         self.create_joints()
         self.create_bones()
         self.create_muscles()
-        if JOINT_LIMITS:
+        if self.settings.joint_limits:
             self.create_limits()
 
     def debug_move(self, dx: float):
@@ -93,11 +94,11 @@ class CreaturePymunk:
 
             mid = (p1 + p2) * 0.5
             vec = p2 - p1
-            length = max(vec.length, SIMULATION_BONE_WIDTH + 2)
+            length = max(vec.length, self.settings.bone_width + 2)
             angle = math.atan2(vec.y, vec.x)
 
-            mass = max(BODY_MASS, length / SCALE * BODY_MASS)
-            moment = pymunk.moment_for_box(mass, (length, SIMULATION_BONE_WIDTH))
+            mass = max(self.settings.body_mass, length / self.settings.scale * self.settings.body_mass)
+            moment = pymunk.moment_for_box(mass, (length, self.settings.bone_width))
             body = pymunk.Body(mass, moment)
             body.position = mid
             body.angle = angle
@@ -107,9 +108,9 @@ class CreaturePymunk:
 
             body.velocity_func = pymunk.Body.update_velocity
 
-            shape = pymunk.Poly.create_box(body, (length, SIMULATION_BONE_WIDTH))
-            shape.friction = BODY_FRICTION
-            if OVERLAP_ALLOWED:
+            shape = pymunk.Poly.create_box(body, (length, self.settings.bone_width))
+            shape.friction = self.settings.body_friction
+            if self.settings.overlap_allowed:
                 shape.filter = pymunk.ShapeFilter(group=1)  # ako je 1 onda nema kolizije
             self.space.add(body, shape)
 
@@ -139,13 +140,13 @@ class CreaturePymunk:
                 continue
 
             motor = pymunk.SimpleMotor(self.bodies[b1], self.bodies[b2], 0.0)
-            motor.max_force = MOTOR_MAX_FORCE
+            motor.max_force = self.settings.max_motor_force
             self.space.add(motor)
             self.motors.append(motor)
 
     def create_limits(self):
-        MAX_ANGLE = math.radians(MAX_JOINT_ANGLE)
-        MIN_ANGLE = math.radians(MIN_JOINT_ANGLE)
+        MAX_ANGLE = math.radians(self.settings.max_joint_angle)
+        MIN_ANGLE = math.radians(self.settings.min_joint_angle)
         visited: Dict[tuple, bool] = {}
         for joint in self.creature.joints:
             bodies: list[Body] = []
@@ -164,7 +165,6 @@ class CreaturePymunk:
                         continue
                     visited[key] = True
 
-
                     # ko je levo od koga
                     v1 = b1.rotation_vector
                     v2 = b2.rotation_vector
@@ -173,10 +173,10 @@ class CreaturePymunk:
                     is_left = True if x > 0 else False
 
                     # realni ugao izmedju njih
-                    a = (b2.angle-math.pi) % (2 * math.pi)
+                    a = (b2.angle - math.pi) % (2 * math.pi)
                     b = b1.angle % (2 * math.pi)
                     rest = b2.angle - b1.angle
-                    diff = (a-b) % (2 * math.pi)
+                    diff = (a - b) % (2 * math.pi)
                     if diff > math.pi:
                         diff = 2 * math.pi - diff
 
@@ -196,7 +196,7 @@ class CreaturePymunk:
                     self.limits.append(limit)
                     self.space.add(limit)
 
-                    if not ADD_SPRINGS:
+                    if not self.settings.add_sprints:
                         continue
 
                     center_b1 = b1.center_of_gravity
@@ -208,12 +208,12 @@ class CreaturePymunk:
                     self.space.add(spring)
 
     def world_pos(self, x, y):
-        x_pos = x * SCALE + WINDOW_WIDTH // 2 - self.bounds[0] * SCALE / 2
-        y_pos = y * SCALE - self.bounds[1] * SCALE + GROUND_Y - 20
+        x_pos = x * self.settings.scale + WINDOW_WIDTH // 2 - self.bounds[0] * self.settings.scale / 2
+        y_pos = y * self.settings.scale - self.bounds[1] * self.settings.scale + GROUND_Y - 20
         return pymunk.Vec2d(x_pos, y_pos)
 
     def create_hub(self, pos):
-        hub_mass = BODY_MASS
+        hub_mass = self.settings.body_mass
         hub_inertia = pymunk.moment_for_circle(hub_mass, 0, 6)
         hub = pymunk.Body(hub_mass, hub_inertia)
         hub.position = pos
@@ -236,7 +236,7 @@ class CreaturePymunk:
         inp = []
 
         for m in self.motors:
-            inp.append(np.clip(m.rate / MAX_MOTOR_RATE, -1, 1))
+            inp.append(np.clip(m.rate / self.settings.max_motor_rate, -1, 1))
 
         for b in self.bodies.values():
             angle = b.angle
@@ -245,7 +245,7 @@ class CreaturePymunk:
 
             angular_velocity = b.angular_velocity
             # ako je angular vel>20 x>1 -> clip an 1
-            inp.append(np.clip(angular_velocity / EXPECTED_MAX_ANGULAR_VELOCITY, -1, 1))
+            inp.append(np.clip(angular_velocity / self.settings.expected_max_angular_velocity, -1, 1))
 
         # pozicije hubova u odnosu na centar i brzine
         cx, cy = self.get_center()
@@ -256,8 +256,8 @@ class CreaturePymunk:
             rx = np.clip((hub.position.x - cx) / w, -1, 1)
             ry = np.clip((hub.position.y - cy) / h, -1, 1)
 
-            vx = np.clip(hub.velocity.x / EXPECTED_MAX_LINEAR_VELOCITY, -1, 1)
-            vy = np.clip(hub.velocity.y / EXPECTED_MAX_LINEAR_VELOCITY, -1, 1)
+            vx = np.clip(hub.velocity.x / self.settings.expected_max_linear_velocity, -1, 1)
+            vy = np.clip(hub.velocity.y / self.settings.expected_max_linear_velocity, -1, 1)
 
             inp.extend([rx, ry, vx, vy])
 
@@ -298,10 +298,9 @@ class CreaturePymunk:
         self.limits.clear()
 
         self.creature_to_pymunk()
-        
+
     def is_upside_down(self, threshold: float = 0.3) -> bool:
         return False
-
 
     @staticmethod
     def get_number_of_inputs(creature: Creature):
@@ -309,7 +308,3 @@ class CreaturePymunk:
         m = len(creature.muscles)
         b = len(creature.bones)
         return j * 4 + b * 3 + m + 1  # dist do zemlje
-
-    
-    
-    

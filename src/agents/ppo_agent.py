@@ -174,3 +174,6 @@ class PPOAgent(Agent):
         for p in reversed(batch.passes):
             G = p.reward + gamma * G
             p.rtg = G
+
+    def load_from_file(self, filename):
+        pass

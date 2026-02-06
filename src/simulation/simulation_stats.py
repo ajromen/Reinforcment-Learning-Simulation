@@ -3,7 +3,7 @@ import math
 import os.path
 import time
 
-from src.utils.constants import WINDOW_WIDTH
+from src.ui.ui_settings import WINDOW_WIDTH
 
 
 class SimulationStats:
@@ -27,6 +27,7 @@ class SimulationStats:
         self.max_x_episode = 0
         self.act_sum = 0
         self.activations = 0
+        
 
     def episode_end(self, steps, final_dist):
         dist = self.get_dist_m()
@@ -36,17 +37,17 @@ class SimulationStats:
         self.number_of_episodes += 1
         self.time_per_episode.append(time.time() - self.episode_start_time)
         self.episode_start_time = time.time()
-        self.last_dist_per_episode.append(final_dist)
+        self.last_dist_per_episode.append(float(final_dist))
 
         if steps == 0:
             return
 
         reward = self.curr_episode_rewards / steps
-        self.rewards_per_episode.append(reward)
+        self.rewards_per_episode.append(float(reward))
         self.curr_episode_rewards = 0
 
         activation = self.activations / steps
-        self.activation_per_episode.append(activation)
+        self.activation_per_episode.append(float(activation))
         self.activations = 0
 
         self.max_x_episode = -math.inf

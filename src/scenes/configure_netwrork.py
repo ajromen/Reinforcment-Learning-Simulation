@@ -4,7 +4,7 @@ from pygame import Rect, Vector2
 from src.ui import colors
 from src.ui.input_handler import InputHandler
 from src.ui.text_renderer import TextRenderer
-from src.utils.constants import FPS, RADIUS_NEURONS, W_SPACING_NEURONS, H_SPACING_NEURONS
+from src.ui.ui_settings import FPS, RADIUS_NEURONS, W_SPACING_NEURONS, H_SPACING_NEURONS
 
 
 class ConfigureNetwork:

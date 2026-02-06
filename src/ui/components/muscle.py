@@ -6,7 +6,7 @@ from src.ui.components.bone import Bone
 from src.ui.components.joint import Joint
 from src.ui.image_manager import ImageManager
 from src.ui.input_handler import InputHandler
-from src.utils.constants import UI_BONE_WIDTH, UI_MUSCLE_WIDTH
+from src.ui.ui_settings import UI_BONE_WIDTH, UI_MUSCLE_WIDTH
 
 
 class Muscle:

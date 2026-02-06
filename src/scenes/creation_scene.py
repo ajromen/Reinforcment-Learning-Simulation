@@ -16,7 +16,7 @@ from src.ui.components.muscle import Muscle
 from src.ui.image_manager import ImageManager
 from src.ui.input_handler import InputHandler
 from src.ui.text_renderer import TextRenderer
-from src.utils.constants import WINDOW_HEIGHT, FPS, WINDOW_WIDTH
+from src.ui.ui_settings import WINDOW_WIDTH, FPS, WINDOW_HEIGHT
 from src.utils.creature_loader import CreatureLoader
 
 

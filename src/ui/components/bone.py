@@ -7,7 +7,7 @@ from pygame.typing import SequenceLike
 from src.ui import colors
 from src.ui.components.joint import Joint
 from src.ui.input_handler import InputHandler
-from src.utils.constants import UI_BONE_WIDTH
+from src.ui.ui_settings import UI_BONE_WIDTH
 
 
 class Bone:
