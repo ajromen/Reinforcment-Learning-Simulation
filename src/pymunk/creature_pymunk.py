@@ -300,7 +300,6 @@ class CreaturePymunk:
         self.creature_to_pymunk()
         
     def is_upside_down(self, threshold: float = 0.3) -> bool:
-    
         return False
 
 

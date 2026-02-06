@@ -20,33 +20,63 @@ class SimulationStats:
         self.steps_per_episode = steps_per_episode
 
         # per episode
-        self.episode_start_time = 0
-        self.end_time = 0
+        self.episode_start_time = time.time()
         self.last_reward = 0
-        self.curr_episode_rewards = []
+        self.curr_episode_rewards = 0
         self.max_dist = 0
         self.max_x_episode = 0
         self.act_sum = 0
-        self.activations = []
+        self.activations = 0
 
     def episode_end(self, steps, final_dist):
+        dist = self.get_dist_m()
+        self.dist_per_episode.append(dist)
+        if dist > self.max_dist:
+            self.max_dist = dist
         self.number_of_episodes += 1
         self.time_per_episode.append(time.time() - self.episode_start_time)
+        self.episode_start_time = time.time()
         self.last_dist_per_episode.append(final_dist)
 
-        reward = sum(self.curr_episode_rewards) / steps
-        self.rewards_per_episode.append(reward)
+        if steps == 0:
+            return
 
-        activation = sum(self.activations) / steps
+        reward = self.curr_episode_rewards / steps
+        self.rewards_per_episode.append(reward)
+        self.curr_episode_rewards = 0
+
+        activation = self.activations / steps
         self.activation_per_episode.append(activation)
+        self.activations = 0
 
         self.max_x_episode = -math.inf
 
-    def get_elapsed_time(self):
-        return time.time() - self.start_time + self.simulation_time
+    def get_elapsed_time(self) -> str:
+        elapsed = int(time.time() - self.start_time + self.simulation_time)
+        return f"{elapsed // 3600:02d}h:{(elapsed % 3600) // 60:02d}m:{elapsed % 60:02d}s"
+
+    def get_last_episode_time(self) -> str:
+        if self.number_of_episodes == 0:
+            return "00m:00s"
+        last = int(self.time_per_episode[-1])
+        return f"{(last % 3600) // 60:02d}m:{last % 60:02d}s"
+
+    def get_last_episode_reward(self) -> str:
+        if self.number_of_episodes == 0:
+            return "0"
+        return f"{self.rewards_per_episode[-1]:.2f}"
+
+    def get_last_episode_activation(self) -> str:
+        if self.number_of_episodes == 0:
+            return "0"
+        return f"{self.activation_per_episode[-1]:.2f}"
 
     def get_dist_m(self):
         return (self.max_x_episode - WINDOW_WIDTH // 2) / 200
+
+    def update_max_x(self, center_x):
+        if center_x > self.max_x_episode:
+            self.max_x_episode = center_x
 
     def save_to_file(self, filepath):
         data = {

@@ -42,11 +42,7 @@ class SimulationWindow:
         self.camera_offset = pygame.math.Vector2(0, 0)
         self.screen_center = pygame.math.Vector2(WINDOW_WIDTH // 2, WINDOW_HEIGHT // 2)
 
-        self.dist_per_episode = []
         self.progress_graph = None
-        self.act_sum = 0
-        self.last_reward = 0
-        self.start_time = time.time()
 
         self.stats = SimulationStats(NUM_OF_STEPS_PER_EPISODE)
 
@@ -98,10 +94,11 @@ class SimulationWindow:
 
             self.run_pymunk(visual)
             if i % 2 == 0:
-                dist = self.model_reward()
-                if not visual and dist:
+                end = self.model_reward()
+                if not visual and end:
                     print(
-                        "Episode end \n Max dist: " + str(dist) + "\n Starting episode: " + str(
+                        "Episode end \n Max dist: " + str(
+                            self.stats.last_dist_per_episode[-1]) + "\n Starting episode: " + str(
                             self.stats.number_of_episodes + 1))
 
             i += 1
@@ -160,13 +157,21 @@ class SimulationWindow:
                                      (WINDOW_WIDTH - 300, 230), self.window)
             TextRenderer.render_text("Max dist (total): " + f'{self.stats.max_dist:.2f}m', 16, foreground,
                                      (WINDOW_WIDTH - 300, 250), self.window)
-            TextRenderer.render_text("Last reward: " + f"{self.last_reward:.2f}", 16, foreground,
+            TextRenderer.render_text("Last reward: " + f"{self.stats.last_reward:.2f}", 16, foreground,
                                      (WINDOW_WIDTH - 300, 270),
                                      self.window)
 
-            elapsed = int(time.time() - self.start_time)
-            formatted = f"{elapsed // 3600:02d}h:{(elapsed % 3600) // 60:02d}m:{elapsed % 60:02d}s"
+            formatted = self.stats.get_elapsed_time()
             TextRenderer.render_text("Elapsed time: " + formatted, 16, foreground, (WINDOW_WIDTH - 300, 290),
+                                     self.window)
+            TextRenderer.render_text("Last episode time: " + self.stats.get_last_episode_time(), 16, foreground,
+                                     (WINDOW_WIDTH - 300, 310),
+                                     self.window)
+            TextRenderer.render_text("Last episode rewards: " + self.stats.get_last_episode_reward(), 16, foreground,
+                                     (WINDOW_WIDTH - 300, 330),
+                                     self.window)
+            TextRenderer.render_text("Last episode activation: " + self.stats.get_last_episode_activation(), 16, foreground,
+                                     (WINDOW_WIDTH - 300, 350),
                                      self.window)
         else:
             TextRenderer.render_text("Hold L_CTRL to see more info", 16, foreground, (WINDOW_WIDTH - 300, 210),
@@ -175,14 +180,16 @@ class SimulationWindow:
             self.window.blit(self.progress_graph, (WINDOW_WIDTH - self.progress_graph.get_width() - 10, 10))
 
     def _plot_distance_surface(self):
-        if len(self.dist_per_episode) == 0:
+        if self.stats.number_of_episodes == 0:
             return None
 
         fig, ax = plt.subplots(figsize=(3, 2), dpi=100)  # small figure
-        ax.plot(self.dist_per_episode, color=light_background, linewidth=2)
+        ax.plot(self.stats.dist_per_episode, color=light_background, linewidth=2)
+        ax.set_title("Max distances per episode", color=light_background)
         fig.patch.set_color(background_secondary)
         ax.patch.set_color(background_secondary)
         ax.tick_params(colors=light_background)
+
         ax.spines['bottom'].set_color(background_secondary)  # axes lines
         ax.spines['top'].set_color(background_secondary)
         ax.spines['left'].set_color(background_secondary)
@@ -300,23 +307,16 @@ class SimulationWindow:
 
     def restart_episode(self):
         self.creature.restart()
-        self.step = 0
-        dist = self.stats.get_dist_m()
-        self.dist_per_episode.append(dist)
-        if dist > self.stats.max_dist:
-            self.stats.max_dist = dist
 
-        self.stats.episode_end(self.step)
+        self.stats.episode_end(self.step, self.curr_center[0])
         center = self.creature.get_center()
         self.last_center = center
         self.curr_center = center
 
         self._place_ground()
-
         self.model.episode_end()
-
         self.progress_graph = self._plot_distance_surface()
-        return dist
+        self.step = 0
 
     def model_step(self):
         if self.skip_model:
@@ -326,13 +326,13 @@ class SimulationWindow:
         self.step += 1
         activation = self.model.step(self.creature.get_state())
 
-        self.act_sum = 0
+        self.stats.act_sum = 0
         for i, a in enumerate(activation):
             self.creature.motors[i].rate = float(a) * MAX_MOTOR_RATE
-            self.act_sum += abs(a)
+            self.stats.act_sum += abs(a)
+        self.stats.activations += self.stats.act_sum
 
-        if self.curr_center[0] > self.stats.max_x_episode:
-            self.stats.max_x_episode = self.curr_center[0]
+        self.stats.update_max_x(self.curr_center[0])
 
     def model_reward(self):
         cx1, cy = self.curr_center
@@ -341,21 +341,25 @@ class SimulationWindow:
         done = False
 
         # reward += cx1 - WINDOW_WIDTH // 2  # dodaje ukupnu udaljenost kao najveci faktor
-        reward -= self.act_sum
-        if self.creature.is_upside_down():
-            reward -= 300
-            done = True
+        reward -= self.stats.act_sum
+
+        # TODO is_upside_down
+        # if self.creature.is_upside_down():
+        #     reward -= 300
+        #     done = True
+
         if cy > GROUND_Y + 10:
             done = True
-            reward -= 100
+            reward -= 1000
         elif self.step >= NUM_OF_STEPS_PER_EPISODE:
             done = True
 
         self.model.reward(reward)
-        self.last_reward = reward
+        self.stats.curr_episode_rewards += reward
+        self.stats.last_reward = reward
 
         if done:
-            dist = self.restart_episode()
-            return dist
+            self.restart_episode()
+            return True
 
-        return None
+        return False
