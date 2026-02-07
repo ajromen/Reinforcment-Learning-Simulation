@@ -85,6 +85,7 @@ class ImageManager:
         ImageManager.dots_grid_small = None
         ImageManager.muscle = None
 
-    def load_for_simulation(self):
+    @staticmethod
+    def load_for_simulation():
         ImageManager.dots_grid_small = pygame.image.load(ASSETS_PATH + "dots_grid.png").convert_alpha()
         ImageManager.muscle = pygame.image.load(ASSETS_PATH + "muscle.png").convert_alpha()

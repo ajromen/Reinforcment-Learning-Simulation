@@ -1,6 +1,7 @@
 import json
 import uuid
 from pathlib import Path
+from typing import Tuple, List
 
 from src.models.bone import Bone
 from src.models.creature import Creature
@@ -59,6 +60,34 @@ class CreatureLoader:
         id = uuid.uuid4()
         creature = Creature(id, joints_save, bone_save, muscle_save)
         return creature
+
+    @staticmethod
+    def creature_to_ui(creature: Creature) -> Tuple[List[JointComponent], List[BoneComponent], List[MuscleComponent]]:
+
+        joint_map = {}
+        joints_ui: List[JointComponent] = []
+        for j in creature.joints:
+            joint_ui = JointComponent(coords=(j.x*25, j.y*25), pos=(j.x, j.y), id=j.id)
+            joints_ui.append(joint_ui)
+            joint_map[j.id] = joint_ui
+
+        bone_map = {}
+        bones_ui: List[BoneComponent] = []
+        for b in creature.bones:
+            joint1_ui = joint_map[b.joint1_id]
+            joint2_ui = joint_map[b.joint2_id]
+            bone_ui = BoneComponent(b.id, joint1_ui, joint2_ui)
+            bones_ui.append(bone_ui)
+            bone_map[b.id] = bone_ui
+
+        muscles_ui: List[MuscleComponent] = []
+        for m in creature.muscles:
+            bone1_ui = bone_map[m.bone1_id]
+            bone2_ui = bone_map[m.bone2_id]
+            muscle_ui = MuscleComponent(m.id, bone1_ui, bone2_ui)
+            muscles_ui.append(muscle_ui)
+
+        return joints_ui, bones_ui, muscles_ui
 
     @staticmethod
     def save(joints, bones, muscles):

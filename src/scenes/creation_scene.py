@@ -72,6 +72,7 @@ class CreationScene:
                 elif event.type == pygame.MOUSEBUTTONDOWN:
                     if event.button == 1:
                         clicked = True
+                        #TODO j= joint m= muscle b = bone
 
             action = self.show_ui(clicked)
 
