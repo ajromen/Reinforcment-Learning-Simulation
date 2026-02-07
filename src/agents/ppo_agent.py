@@ -1,3 +1,4 @@
+from pathlib import Path
 from typing import List
 
 import numpy as np
@@ -175,5 +176,48 @@ class PPOAgent(Agent):
             G = p.reward + gamma * G
             p.rtg = G
 
-    def load_from_file(self, filename):
-        pass
+    def end_simulation(self, filepath: str):
+        path = Path(filepath)
+        path.parent.mkdir(parents=True, exist_ok=True)
+
+        checkpoint = {
+            "actor_state_dict": self.actor.state_dict(),
+            "critic_state_dict": self.critic.state_dict(),
+            "actor_optim_state_dict": self.actor_optim.state_dict(),
+            "critic_optim_state_dict": self.critic_optim.state_dict(),
+
+            "layer_widths": self.layer_widths,
+            "discount_factor": self.discount_factor,
+            "lr_actor": self.lr_actor,
+            "lr_critic": self.lr_critic,
+            "batch_size": self.max_batches,
+            "clip_epsilon": self.clip_epsilon,
+            "k_epochs": self.k_epochs,
+            "entropy_coef": self.entropy_coef,
+
+            "device": str(self.device),
+            "agent": "PPO",
+        }
+
+        torch.save(checkpoint, path)
+
+    def load_from_file(self, filename: str):
+        checkpoint = torch.load(filename, map_location=self.device)
+
+        self.actor.load_state_dict(checkpoint["actor_state_dict"])
+        self.critic.load_state_dict(checkpoint["critic_state_dict"])
+        self.actor_optim.load_state_dict(checkpoint["actor_optim_state_dict"])
+        self.critic_optim.load_state_dict(checkpoint["critic_optim_state_dict"])
+
+        self.layer_widths = checkpoint["layer_widths"]
+        self.discount_factor = checkpoint["discount_factor"]
+        self.lr_actor = checkpoint["lr_actor"]
+        self.lr_critic = checkpoint["lr_critic"]
+        self.max_batches = checkpoint["batch_size"]
+        self.clip_epsilon = checkpoint["clip_epsilon"]
+        self.k_epochs = checkpoint["k_epochs"]
+        self.entropy_coef = checkpoint["entropy_coef"]
+
+        self.batches.clear()
+        self.curr_batch = Batch()
+        self.count = 0

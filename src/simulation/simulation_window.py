@@ -1,5 +1,6 @@
 import io
 import math
+import os.path
 import sys
 import time
 from typing import List
@@ -12,6 +13,7 @@ from pygame import Vector2
 from pymunk import pygame_util
 
 from src.agents.agent import Agent
+from src.markdown.image_generator import ImageGenerator
 from src.models.creature import Creature
 from src.pymunk.creature_pymunk import CreaturePymunk
 from src.simulation.simulation_settings import SimulationSettings
@@ -31,10 +33,11 @@ class SimulationWindow:
         pygame.init()
         self.window = pygame.display.set_mode((WINDOW_WIDTH, WINDOW_HEIGHT))
         pygame.display.set_caption(model.name + " - " + APP_NAME)
-        ImageManager.load_for_simulation(ImageManager)
+        ImageManager.load_for_simulation()
         self.space = pymunk.Space()
         self.settings = SimulationSettings()
         self.creature = CreaturePymunk(creature, self.space, self.settings)
+        self.creature_model = creature
         self.draw = pygame_util.DrawOptions(self.window)
         self.setup_space()
         self.model = model
@@ -147,6 +150,8 @@ class SimulationWindow:
                 pygame.display.flip()
 
     def load_everything(self):
+        if not os.path.exists(self.save_path):
+            return
         self.model.load_from_file(self.save_path + "model.pt")
         self.stats.load_from_file(self.save_path + "stats.json")
         self.settings.load_from_file(self.save_path + "settings.json")
@@ -165,6 +170,7 @@ class SimulationWindow:
         self.model.end_simulation(self.save_path + "model.pt")
         self.stats.save_to_file(self.save_path + "stats.json")
         self.settings.save_to_file(self.save_path + "settings.json")
+        ImageGenerator.generate_creature_image(self.creature_model, self.save_path + "creature.png")
 
     def _place_ground(self):
         static_body = self.space.static_body

@@ -89,7 +89,6 @@ class SimulationStats:
             "rewards_per_episode": self.rewards_per_episode,
             "last_dist_per_episode": self.last_dist_per_episode,
             "activation_per_episode": self.activation_per_episode,
-            "steps_per_episode": self.steps_per_episode,
         }
 
         with open(filepath, "w") as f:
@@ -110,4 +109,3 @@ class SimulationStats:
         self.rewards_per_episode = data["rewards_per_episode"]
         self.last_dist_per_episode = data["last_dist_per_episode"]
         self.activation_per_episode = data["activation_per_episode"]
-        self.steps_per_episode = data["steps_per_episode"]

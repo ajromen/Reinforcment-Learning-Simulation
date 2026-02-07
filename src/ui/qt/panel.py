@@ -3,10 +3,10 @@ import webbrowser
 from pathlib import Path
 
 import markdown
-from PyQt6.QtCore import Qt
+from PyQt6.QtCore import Qt, QUrl
 from PyQt6.QtWidgets import QWidget, QVBoxLayout, QLabel, QTextBrowser, QHBoxLayout
 
-from src.ui.colors import light_background
+from src.ui.colors import light_background, background_secondary, foreground
 from src.ui.qt.button import Button
 from src.ui.qt.small_button import SmallButton
 
@@ -83,20 +83,26 @@ class Panel(QWidget):
             extensions=[
                 "fenced_code",
                 "tables",
+
             ]
         )
 
+        md_path = Path(test_md).resolve()
+        base_url = QUrl.fromLocalFile(str(md_path.parent) + "/")
+
+        viewer.document().setBaseUrl(base_url)
         viewer.setHtml(html)
+
         viewer.setOpenExternalLinks(True)
 
-        viewer.setStyleSheet("""
-            QTextBrowser {
-                background-color: #0c0c0c;
-                color: #e0e0e0;
+        viewer.setStyleSheet(f"""
+            QTextBrowser {{
+                background-color: {background_secondary};
+                color: {foreground};
                 font-family: "JetBrains Mono";
                 font-size: 15px;
                 padding: 12px;
-            }
+            }}
         """)
 
         self.layout.addWidget(viewer)
