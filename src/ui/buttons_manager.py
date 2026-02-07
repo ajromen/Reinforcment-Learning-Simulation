@@ -1,6 +1,6 @@
 from src.ui.components.button import Button
 from src.ui.image_manager import ImageManager
-from src.utils.constants import WINDOW_HEIGHT, WINDOW_WIDTH, SMALL_BUTTON_DIMENSIONS, LARGE_BUTTON_DIMENSIONS
+from src.ui.ui_settings import WINDOW_HEIGHT, WINDOW_WIDTH, SMALL_BUTTON_DIMENSIONS, LARGE_BUTTON_DIMENSIONS
 
 
 class ButtonsManager:

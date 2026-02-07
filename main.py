@@ -4,7 +4,7 @@ from src.scenes.analysis_scene import AnalysisScene
 from src.scenes.creation_scene import CreationScene
 from src.ui.image_manager import ImageManager
 from src.ui.text_renderer import TextRenderer
-from src.utils.constants import WINDOW_WIDTH, WINDOW_HEIGHT
+from src.ui.ui_settings import WINDOW_WIDTH, WINDOW_HEIGHT
 
 
 def main():

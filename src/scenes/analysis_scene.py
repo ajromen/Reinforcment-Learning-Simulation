@@ -4,8 +4,9 @@ from multiprocessing import Process, Queue
 import pygame
 from PyQt6.QtCore import QTimer
 from PyQt6.QtWidgets import QApplication, QHBoxLayout
+from contourpy.util.data import simple
 
-from src.agents.ppo_agent import  PPOAgent
+from src.agents.ppo_agent import PPOAgent
 from src.agents.reinforce_agent import ReinforceAgent
 from src.models.creature import Creature
 from src.pymunk.creature_pymunk import CreaturePymunk
@@ -14,6 +15,7 @@ from src.ui.qt import qt_utils
 from src.ui.qt.panel import Panel
 from src.ui.qt.window import MainWindow
 from src.utils.constants import ASSETS_PATH, SAVE_FILE_PATH
+
 
 class AnalysisScene:
     def __init__(self, creature: Creature, nn_layers: list[int]):
@@ -29,6 +31,8 @@ class AnalysisScene:
         self.nn_layers[-1] = len(creature.muscles)
         self.nn_layers[0] = input_size
 
+        self.save_path = SAVE_FILE_PATH + str(creature.id) + "/"
+
     def _setup_window(self):
         layout = QHBoxLayout(self.window)
         layout.setContentsMargins(10, 10, 10, 10)
@@ -39,7 +43,8 @@ class AnalysisScene:
             "REINFORCE is a simple reinforcement learning method used in smaller scale. Updates actions based on total rewards collected in an episode.",
             ASSETS_PATH + "brain_alt.png",
             ASSETS_PATH + "brain.png",
-            self.run_reinforce
+            self.run_reinforce,
+            lambda: self.run_reinforce(True)
         )
 
         self.right = Panel(
@@ -47,7 +52,8 @@ class AnalysisScene:
             "PPO or proximal policy optimization is a more stable method. Uses an additional critic model to improve efficiency.",
             ASSETS_PATH + "brain_alt.png",
             ASSETS_PATH + "brain.png",
-            self.run_ppo
+            self.run_ppo,
+            lambda: self.run_ppo(True)
         )
 
         layout.addWidget(self.left)
@@ -57,41 +63,53 @@ class AnalysisScene:
         self.window.show()
         self.app.exec()
 
-    def run_reinforce(self):
-        self.left.button.setEnabled(False)
-        self.right.button.setEnabled(False)
-        p = Process(target=self._reinforce_process, args=(self.queue,))
-
+    def run_reinforce(self, simple=False):
+        p = Process(target=self._reinforce_process, args=(self.queue, simple,))
         p.start()
 
         self.timer = QTimer()
         self.timer.timeout.connect(self._check_queue)
-        self.timer.start(5000)  # proverava svakih 5s
+        self.timer.start(1000)
 
-    def run_ppo(self):
         self.left.button.setEnabled(False)
         self.right.button.setEnabled(False)
-        p = Process(target=self._ppo_process, args=(self.queue,))
 
+    def run_ppo(self, simple=False):
+        p = Process(target=self._ppo_process, args=(self.queue, simple,))
         p.start()
 
         self.timer = QTimer()
         self.timer.timeout.connect(self._check_queue)
-        self.timer.start(1000)  # proverava svakih 1s
+        self.timer.start(1000)
 
-    def _reinforce_process(self, queue):
+        self.left.button.setEnabled(False)
+        self.right.button.setEnabled(False)
+
+    def _reinforce_process(self, queue, simple=False):
         agent = ReinforceAgent(self.nn_layers)
-        reinforce_window = SimulationWindow(self.creature, agent)
-        reinforce_window.start()
+        reinforce_window = SimulationWindow(self.creature, agent, self.save_path + "reinforce/")
+        if not simple:
+            reinforce_window.start()
+        else:
+            reinforce_window.start_simple()
         pygame.quit()
-        queue.put("reinforce")
+        if not simple:
+            queue.put("reinforce")
+        else:
+            queue.put("reinforce_simple")
 
-    def _ppo_process(self, queue):
+    def _ppo_process(self, queue, simple=False):
         agent = PPOAgent(self.nn_layers)
-        reinforce_window = SimulationWindow(self.creature, agent)
-        reinforce_window.start()
+        ppo_window = SimulationWindow(self.creature, agent, self.save_path + "ppo/")
+        if not simple:
+            ppo_window.start()
+        else:
+            ppo_window.start_simple()
         pygame.quit()
-        queue.put("ppo")
+        if not simple:
+            queue.put("ppo")
+        else:
+            queue.put("ppo_simple")
 
     def _check_queue(self):
         if not self.queue.empty():
@@ -101,6 +119,12 @@ class AnalysisScene:
                 self.reinforce_finished()
             elif process == "ppo":
                 self.ppo_finished()
+            elif process == "ppo_simple":
+                self.left.button.setEnabled(True)
+                self.right.button.setEnabled(False)
+            elif process == "reinforce_simple":
+                self.left.button.setEnabled(False)
+                self.right.button.setEnabled(True)
 
     def ppo_finished(self):
         self.left.button.setEnabled(True)

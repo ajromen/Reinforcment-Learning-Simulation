@@ -1,3 +1,4 @@
+from pathlib import Path
 from typing import List
 
 import numpy as np
@@ -39,7 +40,7 @@ class ReinforceAgent(Agent):
                  discount_factor: float = 0.99,
                  lr: float = 1e-3,
                  input_file: str = None):
-        super().__init__(layer_widths)
+        super().__init__(layer_widths,"REINFORCE")
         self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
         self.policy = ReinforcePolicy(layer_widths).to(self.device)
@@ -105,6 +106,10 @@ class ReinforceAgent(Agent):
         return sum(p.numel() for p in self.policy.parameters())
 
     def end_simulation(self, filepath):
+        path = Path(filepath)
+
+        path.parent.mkdir(parents=True, exist_ok=True)
+
         checkpoint = {
             "model_state_dict": self.policy.state_dict(),
             "optimizer_state_dict": self.optimizer.state_dict(),
@@ -119,7 +124,7 @@ class ReinforceAgent(Agent):
             "num_parameters": self.get_num_of_parameters(),
         }
 
-        torch.save(checkpoint, filepath)
+        torch.save(checkpoint, path)
 
     def load_from_file(self, filename: str):
         saved = torch.load(filename, map_location=self.device)

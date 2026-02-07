@@ -27,7 +27,7 @@ class SimulationStats:
         self.max_x_episode = 0
         self.act_sum = 0
         self.activations = 0
-        
+
 
     def episode_end(self, steps, final_dist):
         dist = self.get_dist_m()

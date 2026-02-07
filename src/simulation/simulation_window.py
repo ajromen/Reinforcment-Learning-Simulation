@@ -21,7 +21,7 @@ from src.ui.colors import background_secondary, foreground, light_background, ba
 from src.ui.image_manager import ImageManager
 from src.ui.text_renderer import TextRenderer
 
-from src.ui.ui_settings import FPS, WINDOW_WIDTH, WINDOW_HEIGHT
+from src.ui.ui_settings import FPS, WINDOW_WIDTH, WINDOW_HEIGHT, APP_NAME
 from src.simulation.simulation_settings import GROUND_Y, GROUND_FRICTION, NUM_OF_EPIOSDES_PER_SIMULATION, \
     NUM_OF_STEPS_PER_EPISODE, STOP_AT_SIMULATION_END, SKIP_MODEL_STEP, SHOW_MUSCLES, DEBUG_DRAW
 
@@ -30,6 +30,7 @@ class SimulationWindow:
     def __init__(self, creature: Creature, model: Agent, save_path, load_old=False):
         pygame.init()
         self.window = pygame.display.set_mode((WINDOW_WIDTH, WINDOW_HEIGHT))
+        pygame.display.set_caption(model.name + " - " + APP_NAME)
         ImageManager.load_for_simulation(ImageManager)
         self.space = pymunk.Space()
         self.settings = SimulationSettings()
@@ -45,13 +46,41 @@ class SimulationWindow:
         self.camera_offset = pygame.math.Vector2(0, 0)
         self.screen_center = pygame.math.Vector2(WINDOW_WIDTH // 2, WINDOW_HEIGHT // 2)
 
-        self.progress_graph = None
-
         self.stats = SimulationStats(NUM_OF_STEPS_PER_EPISODE)
 
         self.show_muscles = SHOW_MUSCLES
         self.debug_view = DEBUG_DRAW
         self.skip_model = SKIP_MODEL_STEP
+
+        if load_old:
+            self.load_everything()
+        self.progress_graph = self._plot_distance_surface()
+
+    def start_simple(self):
+        clock = pygame.time.Clock()
+        i = 0
+        while True:
+            for event in pygame.event.get():
+                if event.type == pygame.QUIT:
+                    pygame.quit()
+                    return
+                elif event.type == pygame.KEYDOWN:
+                    if event.key == pygame.K_e:
+                        return
+                    elif event.key == pygame.K_m:
+                        self.show_muscles = not self.show_muscles
+                    elif event.key == pygame.K_d:
+                        self.debug_view = not self.debug_view
+
+            self.run_pymunk(True)
+
+            if i % 2 == 0:
+                self.model_step()
+
+            self.show()
+
+            clock.tick(FPS)
+            pygame.display.flip()
 
     def start(self):
         clock = pygame.time.Clock()
@@ -126,7 +155,13 @@ class SimulationWindow:
         self.space.gravity = (0, self.settings.gravity)
         self._place_ground()
 
+    def print_notif(self):
+        pygame.draw.rect(self.window, background_secondary, pygame.Rect(500, 360, 200, 80), border_radius=5)
+        TextRenderer.render_text("  Saving...  ", 16, foreground, (532, 390), self.window)
+        pygame.display.flip()
+
     def end_simulation(self):
+        self.print_notif()
         self.model.end_simulation(self.save_path + "model.pt")
         self.stats.save_to_file(self.save_path + "stats.json")
         self.settings.save_to_file(self.save_path + "settings.json")

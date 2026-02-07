@@ -5,8 +5,8 @@ from torch import nn
 
 
 class Agent:
-    def __init__(self, layer_widths: List[int]):
-        super().__init__()
+    def __init__(self, layer_widths: List[int], name:str):
+        self.name = name
         self.layer_widths = layer_widths
         self.input_size = layer_widths[0]
         self.output_size = layer_widths[-1]
