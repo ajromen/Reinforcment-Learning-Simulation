@@ -14,6 +14,7 @@ from pymunk import pygame_util
 
 from src.agents.agent import Agent
 from src.markdown.image_generator import ImageGenerator
+from src.markdown.markdown_maker import MarkdownMaker
 from src.models.creature import Creature
 from src.pymunk.creature_pymunk import CreaturePymunk
 from src.simulation.simulation_settings import SimulationSettings
@@ -171,6 +172,9 @@ class SimulationWindow:
         self.stats.save_to_file(self.save_path + "stats.json")
         self.settings.save_to_file(self.save_path + "settings.json")
         ImageGenerator.generate_creature_image(self.creature_model, self.save_path + "creature.png")
+        md = MarkdownMaker(self.creature_model, self.save_path, self.model, self.settings, self.stats)
+        md.generate_markdown()
+        md.save_markdown(self.save_path+"summary.md")
 
     def _place_ground(self):
         static_body = self.space.static_body

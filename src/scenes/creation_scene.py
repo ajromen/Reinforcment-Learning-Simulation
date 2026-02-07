@@ -5,6 +5,7 @@ from tkinter import filedialog
 from typing import Dict, List
 
 import pygame
+from sympy.logic.boolalg import Boolean
 
 from src.models.creature import Creature
 from src.scenes.configure_netwrork import ConfigureNetwork
@@ -51,14 +52,15 @@ class CreationScene:
             "neural_network": self.neural_network_button,
             "clear": self.clear,
             "load": self.load,
-            "save": self.save
+            "save": self.save,
+            "continue": self.continue_func
         }
 
         if creature is not None:
             self.creature_to_ui(creature)
 
     # returns creature model with neural net configuration
-    def start(self) -> tuple[Creature, List[int]] | None:
+    def start(self) -> tuple[Creature, List[int], bool] | None:
         self.switch_to_select()
         clock = pygame.time.Clock()
 
@@ -72,7 +74,19 @@ class CreationScene:
                 elif event.type == pygame.MOUSEBUTTONDOWN:
                     if event.button == 1:
                         clicked = True
-                        #TODO j= joint m= muscle b = bone
+                elif event.type == pygame.KEYDOWN:
+                    if event.key == pygame.K_j:
+                        self.mode = 'joint'
+                        self.mode_func = self.mode_names.get(self.mode, lambda: print("Nije pronadjen mod"))
+                    elif event.key == pygame.K_m:
+                        self.mode = 'muscle'
+                        self.mode_func = self.mode_names.get(self.mode, lambda: print("Nije pronadjen mod"))
+                    elif event.key == pygame.K_b:
+                        self.mode = 'bone'
+                        self.mode_func = self.mode_names.get(self.mode, lambda: print("Nije pronadjen mod"))
+                    elif event.key == pygame.K_c:
+                        self.mode = 'clear'
+                        self.mode_func = self.mode_names.get(self.mode, lambda: print("Nije pronadjen mod"))
 
             action = self.show_ui(clicked)
 
@@ -87,9 +101,16 @@ class CreationScene:
                     self.print_notif(False)
                 else:
                     CreatureLoader.save_creature(creature)
-                    return creature, self.layer_widths
+                    return creature, self.layer_widths, False
                 self.switch_to_select()
                 clicked = False
+
+            if self.mode == 'continue':
+                creature = CreatureLoader.ui_to_creature(self.joints.values(), self.bones.values(),
+                                                         self.muscles.values())
+                if creature is None:
+                    return None
+                return creature, self.layer_widths, True
 
             self.mode_func(clicked)
 
@@ -284,6 +305,9 @@ class CreationScene:
 
     def learn(self, clicked):
         return
+
+    def continue_func(self, clicked):
+        pass
 
     def neural_network_button(self, clicked):
         conf = ConfigureNetwork(self.window, self.depth, self.layer_widths)

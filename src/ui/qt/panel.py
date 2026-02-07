@@ -10,7 +10,6 @@ from src.ui.colors import light_background, background_secondary, foreground
 from src.ui.qt.button import Button
 from src.ui.qt.small_button import SmallButton
 
-test_md = "./tmp/README.md"
 
 
 class Panel(QWidget):
@@ -29,6 +28,7 @@ class Panel(QWidget):
         toolbar_layout.setAlignment(Qt.AlignmentFlag.AlignLeft)
 
         self.button = Button(title, active_icon, inactive_icon, on_click)
+        self.filepath = ""
 
         self.open_external_btn = SmallButton(
             "Open in browser",
@@ -59,27 +59,23 @@ class Panel(QWidget):
         self.layout.addWidget(self.description, 0, Qt.AlignmentFlag.AlignHCenter)
 
     def _open_in_browser(self):
-        webbrowser.open(Path(test_md).resolve().as_uri())
+        webbrowser.open(Path(self.filepath).resolve().as_uri())
 
     def _run_live_simulation(self):
         self.run_simple()
 
-    def load_markdown(self):
+    def load_markdown(self, filepath):
         self.button.hide()
         self.description.hide()
         self.run_live_btn.show()
         self.open_external_btn.show()
 
         viewer = QTextBrowser()
-
-        if not os.path.exists(test_md):
-            viewer.setPlainText(f"File not found:\n{test_md}")
-            self.layout.addWidget(viewer)
-            return
+        self.filepath = filepath
 
 
         html = markdown.markdown(
-            open(test_md).read(),
+            open(filepath).read(),
             extensions=[
                 "fenced_code",
                 "tables",
@@ -87,7 +83,7 @@ class Panel(QWidget):
             ]
         )
 
-        md_path = Path(test_md).resolve()
+        md_path = Path(filepath).resolve()
         base_url = QUrl.fromLocalFile(str(md_path.parent) + "/")
 
         viewer.document().setBaseUrl(base_url)

@@ -1,10 +1,10 @@
+import os.path
 import sys
 from multiprocessing import Process, Queue
 
 import pygame
 from PyQt6.QtCore import QTimer
 from PyQt6.QtWidgets import QApplication, QHBoxLayout
-from contourpy.util.data import simple
 
 from src.agents.ppo_agent import PPOAgent
 from src.agents.reinforce_agent import ReinforceAgent
@@ -18,7 +18,7 @@ from src.utils.constants import ASSETS_PATH, SAVE_FILE_PATH
 
 
 class AnalysisScene:
-    def __init__(self, creature: Creature, nn_layers: list[int]):
+    def __init__(self, creature: Creature, nn_layers: list[int], is_continue):
         self.creature = creature
         self.nn_layers = nn_layers
         self.app = QApplication(sys.argv)
@@ -32,6 +32,10 @@ class AnalysisScene:
         self.nn_layers[0] = input_size
 
         self.save_path = SAVE_FILE_PATH + str(creature.id) + "/"
+
+        if is_continue:
+            self.reinforce_finished()
+            self.ppo_finished()
 
     def _setup_window(self):
         layout = QHBoxLayout(self.window)
@@ -129,9 +133,17 @@ class AnalysisScene:
     def ppo_finished(self):
         self.left.button.setEnabled(True)
         self.right.button.setEnabled(False)
-        self.right.load_markdown()
+        if os.path.exists(self.save_path + "ppo/summary.md"):
+            self.right.load_markdown(self.save_path + "ppo/summary.md")
+            return
+        self.left.button.setEnabled(True)
+        self.right.button.setEnabled(True)
 
     def reinforce_finished(self):
         self.left.button.setEnabled(False)
         self.right.button.setEnabled(True)
-        self.left.load_markdown()
+        if os.path.exists(self.save_path + "reinforce/summary.md"):
+            self.left.load_markdown(self.save_path + "reinforce/summary.md")
+            return
+        self.left.button.setEnabled(True)
+        self.right.button.setEnabled(True)

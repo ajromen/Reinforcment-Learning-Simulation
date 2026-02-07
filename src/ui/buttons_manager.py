@@ -38,7 +38,11 @@ class ButtonsManager:
                       ImageManager.save_button_inactive,
                       'save')
 
-        self.creation_scene_buttons = [select, muscle, joint, bone, delete, clear, neural_network, learn, load, save]
+        continue_btn = Button(WINDOW_WIDTH - 418, WINDOW_HEIGHT - 90, *LARGE_BUTTON_DIMENSIONS, ImageManager.continue_button,
+                      ImageManager.continue_button_inactive,
+                      'continue')
+
+        self.creation_scene_buttons = [select, muscle, joint, bone, delete, clear, neural_network, learn, load, save, continue_btn]
 
     def show_check_creation_scene_buttons(self, clicked, mode):
         ret = None

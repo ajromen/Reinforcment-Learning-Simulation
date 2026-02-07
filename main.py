@@ -22,8 +22,8 @@ def main():
     ImageManager.clear_all()
     if creature is None:
         return
-    creature, nn_layers = creature
-    analysis_scene = AnalysisScene(creature,nn_layers)
+    creature, nn_layers, is_continue = creature
+    analysis_scene = AnalysisScene(creature, nn_layers, is_continue)
     analysis_scene.start()
 
 

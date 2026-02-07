@@ -11,11 +11,11 @@ from src.utils.creature_loader import CreatureLoader
 
 creature = CreatureLoader.load("./data/f8b0b980-4078-4b8b-a8d1-0aa225940344/creature.json")
 layer_widths = [CreaturePymunk.get_number_of_inputs(creature), 30, 30, 30, len(creature.muscles)]
-# ansc = AnalysisScene(creature,layer_widths)
-# ansc.start()
+ansc = AnalysisScene(creature,layer_widths, False)
+ansc.start()
 
 # pygame.init()
 # agent = ReinforceAgent(layer_widths)
 agent = PPOAgent(layer_widths)
-win = SimulationWindow(creature, agent, "./data/f8b0b980-4078-4b8b-a8d1-0aa225940344/"+agent.name.lower()+"/", load_old=True)
-win.start()
+# win = SimulationWindow(creature, agent, "./data/f8b0b980-4078-4b8b-a8d1-0aa225940344/"+agent.name.lower()+"/", load_old=True)
+# win.start()

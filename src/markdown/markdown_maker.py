@@ -1,9 +1,9 @@
 from src.agents.agent import Agent
 from src.models.creature import Creature
-import markdown as md
 
 from src.simulation.simulation_settings import SimulationSettings
 from src.simulation.simulation_stats import SimulationStats
+from src.ui.ui_settings import APP_NAME
 
 
 class MarkdownMaker:
@@ -19,7 +19,15 @@ class MarkdownMaker:
         self.save_path = save_path
         self.settings = settings
         self.stats = stats
-        pass
+
+    def generate_markdown(self):
+        self.add_h2(APP_NAME)
+        self.add_h1(self.model.name+" method")
+        self.add_image(self.save_path+"creature.png", "Creature image")
+
+    def save_markdown(self, save_path: str):
+        with open(save_path, "w", encoding="utf-8") as f:
+            f.write(self.text)
 
     # headings
 
@@ -84,5 +92,5 @@ class MarkdownMaker:
         self.text += "\n"
 
     def save(self):
-        with open(self.save_path + self.model.name+".md", "w", encoding="utf-8") as f:
+        with open(self.save_path + self.model.name + ".md", "w", encoding="utf-8") as f:
             f.write(self.text)
