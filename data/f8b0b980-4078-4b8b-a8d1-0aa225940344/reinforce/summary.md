@@ -1,4 +1,4 @@
-## Reinforcement Learning Simulation
+### Reinforcement Learning Simulation
 
 # REINFORCE method
 

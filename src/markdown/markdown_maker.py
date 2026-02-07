@@ -21,7 +21,7 @@ class MarkdownMaker:
         self.stats = stats
 
     def generate_markdown(self):
-        self.add_h2(APP_NAME)
+        self.add_h3(APP_NAME)
         self.add_h1(self.model.name+" method")
         self.add_image(self.save_path+"creature.png", "Creature image")
 

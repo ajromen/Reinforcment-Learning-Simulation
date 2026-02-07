@@ -18,6 +18,7 @@ from src.ui.image_manager import ImageManager
 from src.ui.input_handler import InputHandler
 from src.ui.text_renderer import TextRenderer
 from src.ui.ui_settings import WINDOW_WIDTH, FPS, WINDOW_HEIGHT
+from src.utils.constants import SAVE_FILE_PATH
 from src.utils.creature_loader import CreatureLoader
 
 
@@ -35,6 +36,9 @@ class CreationScene:
         self.joint_num = 0
         self.muscle_num = 0
         self.bone_num = 0
+
+        self.can_continue = False
+        self.id = None
 
         # network conf
         self.depth = 6
@@ -106,8 +110,7 @@ class CreationScene:
                 clicked = False
 
             if self.mode == 'continue':
-                creature = CreatureLoader.ui_to_creature(self.joints.values(), self.bones.values(),
-                                                         self.muscles.values())
+                creature = CreatureLoader.load(SAVE_FILE_PATH+str(self.id)+"/creature.json")
                 if creature is None:
                     return None
                 return creature, self.layer_widths, True
@@ -152,6 +155,10 @@ class CreationScene:
                                  self.window)
         return action
 
+    def turn_of_can_continue(self):
+        self.can_continue = False
+        self.buttons.hide_continue_button()
+
     def unselect(self):
         if self.last_selected: self.last_selected.selected = False
         self.last_selected = None
@@ -193,7 +200,7 @@ class CreationScene:
         for joint in self.joints.values():
             if joint.pos == location:
                 return
-
+        self.turn_of_can_continue()
         pos = InputHandler.coords_to_pos(location)
 
         id = "j" + str(self.joint_num)
@@ -213,7 +220,7 @@ class CreationScene:
                     self.last_selected = joint
                     return
             return
-
+        self.turn_of_can_continue()
         for joint in self.joints.values():
             if joint.check_click():
                 if Bone.check_if_exists(self.last_selected, joint, self.bones.values()): return
@@ -240,6 +247,7 @@ class CreationScene:
                     self.last_selected = bone
                     return
             return
+        self.turn_of_can_continue()
 
         for bone in self.bones.values():
             if bone.check_click():
@@ -260,6 +268,7 @@ class CreationScene:
             self.switch_to_select()
             return
 
+        self.turn_of_can_continue()
         id: str = self.last_selected.id
         self.last_selected = None
         part = id[0]
@@ -288,6 +297,7 @@ class CreationScene:
         self.switch_to_select()
 
     def del_bone(self, id):
+        self.turn_of_can_continue()
         bone = self.bones[id]
 
         bone.joint1.bones = [b for b in bone.joint1.bones if b != bone]
@@ -307,11 +317,13 @@ class CreationScene:
         return
 
     def continue_func(self, clicked):
-        pass
+        return
 
     def neural_network_button(self, clicked):
         conf = ConfigureNetwork(self.window, self.depth, self.layer_widths)
-        self.depth, self.layer_widths = conf.start()
+        depth, layer_widths = conf.start()
+        if depth != self.depth or layer_widths!=self.layer_widths:
+            self.turn_of_can_continue()
 
         self.switch_to_select()
 
@@ -338,7 +350,6 @@ class CreationScene:
 
             project_root = os.path.abspath(os.path.join(os.path.dirname(__file__), "../../"))
 
-            # Compute relative path from project root
             relative_path = os.path.relpath(file_path, project_root)
 
             data = CreatureLoader.load("./" + relative_path)
@@ -347,6 +358,8 @@ class CreationScene:
                 return
             self.clear()
 
+            self.can_continue = True
+            self.buttons.show_continue_button()
             self.creature_to_ui(data)
 
         get_file_dialog(on_file_selected)
@@ -358,6 +371,7 @@ class CreationScene:
         self.mode_func = self.select_mode
 
     def save(self, _):
+        self.turn_of_can_continue()
         done = CreatureLoader.save(self.joints.values(), self.bones.values(), self.muscles.values())
 
         self.print_notif(done)
@@ -383,6 +397,7 @@ class CreationScene:
             pygame.display.flip()
 
     def creature_to_ui(self, creature: Creature):
+        self.id = creature.id
         for joint in creature.joints:
             pos = (joint.x, joint.y)
             id = joint.id
@@ -403,6 +418,7 @@ class CreationScene:
             self.muscle_num += 1
 
     def clear(self, _=None):
+        self.turn_of_can_continue()
         self.unselect()
         self.mode_func = self.select_mode
         self.mode = "select"

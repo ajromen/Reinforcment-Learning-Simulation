@@ -13,9 +13,6 @@ from src.utils.creature_loader import CreatureLoader
 
 
 class ImageGenerator:
-    def __init__(self, creature: Creature, save_path: str):
-        pass
-
     @staticmethod
     def generate_creature_image(creature: Creature, save_path: str):
         if os.path.exists(save_path):
