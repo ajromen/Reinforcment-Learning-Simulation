@@ -171,7 +171,7 @@ class SimulationWindow:
         self.model.end_simulation(self.save_path + "model.pt")
         self.stats.save_to_file(self.save_path + "stats.json")
         self.settings.save_to_file(self.save_path + "settings.json")
-        md = MarkdownMaker(self.creature_model, self.save_path,".assets/", self.model, self.settings, self.stats)
+        md = MarkdownMaker(self.creature_model, self.save_path,"assets/", self.model, self.settings, self.stats)
         md.generate_markdown()
         md.save_markdown(self.save_path+"summary.md")
 

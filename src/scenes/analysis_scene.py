@@ -14,7 +14,7 @@ from src.simulation.simulation_window import SimulationWindow
 from src.ui.qt import qt_utils
 from src.ui.qt.panel import Panel
 from src.ui.qt.window import MainWindow
-from src.utils.constants import ASSETS_PATH, SAVE_FILE_PATH
+from src.utils.constants import ASSETS_PATH, SAVE_FILE_PATH, ALT_SAVE_FILE_PATH
 
 
 class AnalysisScene:
@@ -31,7 +31,8 @@ class AnalysisScene:
         self.nn_layers[-1] = len(creature.muscles)
         self.nn_layers[0] = input_size
 
-        self.save_path = SAVE_FILE_PATH + str(creature.id) + "/"
+        save = ALT_SAVE_FILE_PATH if creature.pretrained else SAVE_FILE_PATH
+        self.save_path = save + str(creature.id) + "/"
 
         if is_continue:
             self.reinforce_finished()
@@ -48,7 +49,8 @@ class AnalysisScene:
             ASSETS_PATH + "brain_alt.png",
             ASSETS_PATH + "brain.png",
             self.run_reinforce,
-            lambda: self.run_reinforce(True)
+            lambda: self.run_reinforce(True,True),
+            lambda: self.run_reinforce(simple=False, continue_learning=True)
         )
 
         self.right = Panel(
@@ -57,7 +59,8 @@ class AnalysisScene:
             ASSETS_PATH + "brain_alt.png",
             ASSETS_PATH + "brain.png",
             self.run_ppo,
-            lambda: self.run_ppo(True)
+            lambda: self.run_ppo(True, True),
+            lambda: self.run_ppo(continue_learning=True)
         )
 
         layout.addWidget(self.left)
@@ -67,8 +70,8 @@ class AnalysisScene:
         self.window.show()
         self.app.exec()
 
-    def run_reinforce(self, simple=False):
-        p = Process(target=self._reinforce_process, args=(self.queue, simple,))
+    def run_reinforce(self, simple=False, continue_learning = False):
+        p = Process(target=self._reinforce_process, args=(self.queue, simple,continue_learning,))
         p.start()
 
         self.timer = QTimer()
@@ -78,8 +81,8 @@ class AnalysisScene:
         self.left.button.setEnabled(False)
         self.right.button.setEnabled(False)
 
-    def run_ppo(self, simple=False):
-        p = Process(target=self._ppo_process, args=(self.queue, simple,))
+    def run_ppo(self, simple=False, continue_learning = False):
+        p = Process(target=self._ppo_process, args=(self.queue, simple,continue_learning,))
         p.start()
 
         self.timer = QTimer()
@@ -89,9 +92,9 @@ class AnalysisScene:
         self.left.button.setEnabled(False)
         self.right.button.setEnabled(False)
 
-    def _reinforce_process(self, queue, simple=False):
+    def _reinforce_process(self, queue, simple=False, continue_learning=False):
         agent = ReinforceAgent(self.nn_layers)
-        reinforce_window = SimulationWindow(self.creature, agent, self.save_path + "reinforce/")
+        reinforce_window = SimulationWindow(self.creature, agent, self.save_path + "reinforce/", load_old=continue_learning)
         if not simple:
             reinforce_window.start()
         else:
@@ -102,9 +105,9 @@ class AnalysisScene:
         else:
             queue.put("reinforce_simple")
 
-    def _ppo_process(self, queue, simple=False):
+    def _ppo_process(self, queue, simple=False, continue_learning = False):
         agent = PPOAgent(self.nn_layers)
-        ppo_window = SimulationWindow(self.creature, agent, self.save_path + "ppo/")
+        ppo_window = SimulationWindow(self.creature, agent, self.save_path + "ppo/",load_old=continue_learning)
         if not simple:
             ppo_window.start()
         else:

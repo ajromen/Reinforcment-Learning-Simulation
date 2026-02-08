@@ -13,9 +13,10 @@ from src.ui.qt.small_button import SmallButton
 
 
 class Panel(QWidget):
-    def __init__(self, title: str, description: str, active_icon: str, inactive_icon: str, on_click, run_simple):
+    def __init__(self, title: str, description: str, active_icon: str, inactive_icon: str, on_click, run_simple, continue_fn):
         super().__init__()
 
+        self.viewer = None
         self.layout = QVBoxLayout(self)
         self.layout.setAlignment(Qt.AlignmentFlag.AlignCenter)
         self.layout.setSpacing(24)
@@ -40,11 +41,24 @@ class Panel(QWidget):
             self._run_live_simulation
         )
 
+        self.continue_btn = SmallButton(
+            "Continue learning",
+            continue_fn
+        )
+        self.restart_btn = SmallButton(
+            "Restart learning",
+            on_click
+        )
+
         self.run_live_btn.hide()
         self.open_external_btn.hide()
+        self.continue_btn.hide()
+        self.restart_btn.hide()
 
         toolbar_layout.addWidget(self.open_external_btn)
         toolbar_layout.addWidget(self.run_live_btn)
+        toolbar_layout.addWidget(self.continue_btn)
+        toolbar_layout.addWidget(self.restart_btn)
 
 
         self.description = QLabel(description)
@@ -69,8 +83,13 @@ class Panel(QWidget):
         self.description.hide()
         self.run_live_btn.show()
         self.open_external_btn.show()
+        self.continue_btn.show()
+        self.restart_btn.show()
+        if self.viewer is not None:
+            self.layout.removeWidget(self.viewer)
+            self.viewer = None
 
-        viewer = QTextBrowser()
+        self.viewer = QTextBrowser()
         self.filepath = filepath
 
 
@@ -86,12 +105,12 @@ class Panel(QWidget):
         md_path = Path(filepath).resolve()
         base_url = QUrl.fromLocalFile(str(md_path.parent) + "/")
 
-        viewer.document().setBaseUrl(base_url)
-        viewer.setHtml(html)
+        self.viewer.document().setBaseUrl(base_url)
+        self.viewer.setHtml(html)
 
-        viewer.setOpenExternalLinks(True)
+        self.viewer.setOpenExternalLinks(True)
 
-        viewer.setStyleSheet(f"""
+        self.viewer.setStyleSheet(f"""
             QTextBrowser {{
                 background-color: {background_secondary};
                 color: {foreground};
@@ -101,4 +120,4 @@ class Panel(QWidget):
             }}
         """)
 
-        self.layout.addWidget(viewer)
+        self.layout.addWidget(self.viewer)

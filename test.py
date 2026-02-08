@@ -13,7 +13,7 @@ from src.simulation.simulation_stats import SimulationStats
 from src.simulation.simulation_window import SimulationWindow
 from src.utils.creature_loader import CreatureLoader
 
-save_path = "./data/f8b0b980-4078-4b8b-a8d1-0aa225940344/"
+save_path = "./pretrained/f8b0b980-4078-4b8b-a8d1-0aa225940344/"
 
 creature = CreatureLoader.load(save_path + "creature.json")
 layer_widths = [CreaturePymunk.get_number_of_inputs(creature), 30, 30, 30, len(creature.muscles)]

@@ -18,7 +18,7 @@ from src.ui.image_manager import ImageManager
 from src.ui.input_handler import InputHandler
 from src.ui.text_renderer import TextRenderer
 from src.ui.ui_settings import WINDOW_WIDTH, FPS, WINDOW_HEIGHT
-from src.utils.constants import SAVE_FILE_PATH
+from src.utils.constants import SAVE_FILE_PATH, ALT_SAVE_FILE_PATH
 from src.utils.creature_loader import CreatureLoader
 
 
@@ -111,6 +111,10 @@ class CreationScene:
 
             if self.mode == 'continue':
                 creature = CreatureLoader.load(SAVE_FILE_PATH + str(self.id) + "/creature.json")
+                if creature is not None:
+                    return creature, creature.layer_widths, True
+
+                creature = CreatureLoader.load(ALT_SAVE_FILE_PATH + str(self.id) + "/creature.json")
                 if creature is None:
                     return None
                 return creature, creature.layer_widths, True

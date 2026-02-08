@@ -3,7 +3,6 @@ from typing import List
 
 import numpy as np
 import torch
-from sympy.physics.quantum.density import entropy
 from torch import nn, FloatTensor
 
 from src.agents.agent import Agent
@@ -45,11 +44,22 @@ class PPOAgent(Agent):
                  clip_epsilon: float = 0.2,
                  k_epochs: int = 10,
                  entropy_coef: float = 0.01, ):
-        super().__init__(layer_widths,"PPO")
+        description = """Proximal Policy Optimization (PPO) is an on-policy reinforcement learning algorithm that optimizes a clipped surrogate objective to ensure stable policy updates. 
+        In this simulation, PPO is used to control muscle activations directly, balancing forward locomotion with energy efficiency through activation penalties."""
 
-        self.actor = PPOPolicy(layer_widths).to(self.device)
+        super().__init__(layer_widths,"PPO", "Proximal Policy Optimization", description)
+
+        self.actor = PPOPolicy(layer_widths,lr_actor,"Adam").to(self.device)
         critic_layer = list(layer_widths[:-1]) + [1]
-        self.critic = PPOCritic(critic_layer).to(self.device)
+        self.critic = PPOCritic(critic_layer, lr_critic,"Adam").to(self.device)
+
+        self.hyperparameters = {
+            "Batch Size": batch_size,
+            "Discount Factor": discount_factor,
+            "Clip Epsilon": clip_epsilon,
+            "K Epochs": k_epochs,
+            "Entropy Coefficient": entropy_coef,
+        }
 
         self.max_batches = batch_size
 
@@ -100,7 +110,7 @@ class PPOAgent(Agent):
         transform = torch.distributions.transforms.TanhTransform()
         dist = torch.distributions.TransformedDistribution(base_dist, [transform])
         log_prob = dist.log_prob(action).sum(dim=-1)
-        return log_prob#, base_dist.entropy().sum(dim=-1)
+        return log_prob, base_dist.entropy().sum(dim=-1)
 
     def reward(self, reward):
         self.curr_batch.add_reward_last(reward)
@@ -120,9 +130,9 @@ class PPOAgent(Agent):
                 old_log_probs.append(p.log_prob)
                 rtgs.append(p.rtg)
 
-        states = torch.stack(states)
-        actions = torch.stack(actions)
-        old_log_probs = torch.stack(old_log_probs)
+        states = torch.stack(states).detach()
+        actions = torch.stack(actions).detach()
+        old_log_probs = torch.stack(old_log_probs).detach()
         rtgs = torch.tensor(rtgs, device=self.device)
         values = torch.stack(values).squeeze(-1)
 
@@ -132,8 +142,8 @@ class PPOAgent(Agent):
 
         for _ in range(self.k_epochs):
             # actor
-            log_probs = self._log_prob(states, actions)
-            entropy = -log_probs.detach()
+            log_probs, entropy = self._log_prob(states, actions)
+            # entropy = -log_probs.detach()
 
             ratios = torch.exp(log_probs - old_log_probs)
             lcpi = ratios * advantages
@@ -148,7 +158,7 @@ class PPOAgent(Agent):
             self.actor_optim.step()
 
             # critic
-            values_pred = self.critic(states)
+            values_pred = self.critic(states).squeeze(-1)
             loss_critic = F.mse_loss(values_pred, rtgs)
 
             self.critic_optim.zero_grad()

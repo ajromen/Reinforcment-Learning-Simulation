@@ -40,10 +40,13 @@ class ReinforceAgent(Agent):
                  discount_factor: float = 0.99,
                  lr: float = 1e-3,
                  input_file: str = None):
-        super().__init__(layer_widths,"REINFORCE")
+        description = """REINFORCE is a policy gradient algorithm that
+updates agent policy parameters by increasing the probability of actions that resulted in higher cumulative rewards,
+directly maximizing expected returns without needing a value function."""
+        super().__init__(layer_widths, "REINFORCE", "Vanilla Policy Gradient", description)
 
-        self.policy = ReinforcePolicy(layer_widths).to(self.device)
-        self.optimizer = optim.Adam(self.policy.parameters(), lr=lr)
+        self.actor = ReinforcePolicy(layer_widths, lr, "Adam").to(self.device)
+        self.actor_optimizer = optim.Adam(self.actor.parameters(), lr=lr)
         self.lr = lr
 
         self.discount_factor = discount_factor
@@ -53,11 +56,15 @@ class ReinforceAgent(Agent):
         self.max_batches = batch_size
         self.count = 0
         self.curr_batch = Batch()
+        self.hyperparameters = {
+            "Batch Size": batch_size,
+            "Discount Factor": discount_factor,
+        }
 
     def step(self, state: list[float]):
         state_tensor = FloatTensor(state).to(self.device)
 
-        mean, std = self.policy(state_tensor)
+        mean, std = self.actor(state_tensor)
 
         base_dist = torch.distributions.Normal(mean, std)
         transform = torch.distributions.transforms.TanhTransform()
@@ -86,9 +93,9 @@ class ReinforceAgent(Agent):
         rtgs = (rtgs - rtgs.mean()) / (rtgs.std() + 1e-8)
 
         loss = -(log_probs * rtgs).mean()
-        self.optimizer.zero_grad()
+        self.actor_optimizer.zero_grad()
         loss.backward()
-        self.optimizer.step()
+        self.actor_optimizer.step()
 
     def episode_end(self):
         self.batches.append(self.curr_batch)
@@ -102,7 +109,7 @@ class ReinforceAgent(Agent):
         self.curr_batch = Batch()
 
     def get_num_of_parameters(self):
-        return sum(p.numel() for p in self.policy.parameters())
+        return sum(p.numel() for p in self.actor.parameters())
 
     def end_simulation(self, filepath):
         path = Path(filepath)
@@ -110,8 +117,8 @@ class ReinforceAgent(Agent):
         path.parent.mkdir(parents=True, exist_ok=True)
 
         checkpoint = {
-            "model_state_dict": self.policy.state_dict(),
-            "optimizer_state_dict": self.optimizer.state_dict(),
+            "model_state_dict": self.actor.state_dict(),
+            "optimizer_state_dict": self.actor_optimizer.state_dict(),
 
             "layer_widths": self.layer_widths,
             "discount_factor": self.discount_factor,
@@ -119,7 +126,7 @@ class ReinforceAgent(Agent):
             "batch_size": self.max_batches,
 
             "device": str(self.device),
-            "activation": self.policy.activation_name,
+            "activation": self.actor.activation_name,
             "num_parameters": self.get_num_of_parameters(),
         }
 
@@ -128,8 +135,8 @@ class ReinforceAgent(Agent):
     def load_from_file(self, filename: str):
         saved = torch.load(filename, map_location=self.device)
 
-        self.policy.load_state_dict(saved["model_state_dict"])
-        self.optimizer.load_state_dict(saved["optimizer_state_dict"])
+        self.actor.load_state_dict(saved["model_state_dict"])
+        self.actor_optimizer.load_state_dict(saved["optimizer_state_dict"])
 
         self.layer_widths = saved["layer_widths"]
         self.discount_factor = saved["discount_factor"]

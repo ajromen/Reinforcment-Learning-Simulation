@@ -20,13 +20,13 @@ class SimulationStats:
         self.number_of_episodes = 0
         self.steps_per_episode = steps_per_episode
         self.date_time = datetime.now()
-        self.device = device
+        self.device = str(device)
+        self.max_dist = 0
 
         # per episode
         self.episode_start_time = time.time()
         self.last_reward = 0
         self.curr_episode_rewards = 0
-        self.max_dist = 0
         self.max_x_episode = 0
         self.act_sum = 0
         self.activations = 0
@@ -39,7 +39,7 @@ class SimulationStats:
         self.number_of_episodes += 1
         self.time_per_episode.append(time.time() - self.episode_start_time)
         self.episode_start_time = time.time()
-        self.last_dist_per_episode.append(float(final_dist))
+        self.last_dist_per_episode.append(float((final_dist - WINDOW_WIDTH // 2) / 200))
 
         if steps == 0:
             return
@@ -92,7 +92,8 @@ class SimulationStats:
             "last_dist_per_episode": self.last_dist_per_episode,
             "activation_per_episode": self.activation_per_episode,
             "date_time": self.date_time.strftime("%Y-%m-%d %H:%M:%S"),
-            "device": self.device
+            "device": self.device,
+            "max_dist": self.max_dist,
         }
 
         with open(filepath, "w") as f:
@@ -115,3 +116,4 @@ class SimulationStats:
         self.activation_per_episode = data["activation_per_episode"]
         self.date_time = datetime.strptime(data["date_time"], "%Y-%m-%d %H:%M:%S")
         self.device = data["device"]
+        self.max_dist = data["max_dist"]

@@ -2,6 +2,7 @@ import io
 import os
 from pathlib import Path
 
+import numpy as np
 import pygame
 from matplotlib import pyplot as plt
 from pygame import Vector2
@@ -105,5 +106,91 @@ class ImageGenerator:
         ax.grid(True, color=background_primary)
         fig.tight_layout()
 
+        fig.savefig(filepath, format="png", dpi=100)
+        plt.close(fig)
+
+    @staticmethod
+    def generate_comparison_graph(
+            array1,
+            array2,
+            filepath: str,
+            title: str = "",
+            name_x: str = "",
+            name_y: str = "",
+            array1_name="A",
+            array2_name="B",
+            batch_size=12
+    ):
+        if len(array1) != len(array2):
+            raise ValueError("Arrays must have the same length")
+
+        fig, ax = plt.subplots(figsize=(8, 6), dpi=100)
+
+        ax.plot(array1, linewidth=2, label=array1_name)
+        ax.plot(array2, linewidth=2, label=array2_name)
+
+        x_equal = []
+        y_equal = []
+        num = 0
+        num_per_batch = []
+        for i, (a, b) in enumerate(zip(array1, array2)):
+            if abs(a - b) < 1e-6:
+                x_equal.append(i)
+                y_equal.append(a)
+                num += 1
+
+            if (i + 1) % batch_size == 0:
+                num_per_batch.append(num)
+                num = 0
+
+        if x_equal:
+            ax.scatter(x_equal, y_equal, s=40, zorder=5, label="Equal", c="w")
+
+        ax.set_title(title, color=light_background)
+        fig.patch.set_color(background_secondary)
+        ax.patch.set_color(background_secondary)
+        ax.tick_params(colors=light_background)
+
+        ax.set_xlabel(name_x, color=light_background)
+        ax.set_ylabel(name_y, color=light_background)
+
+        for spine in ax.spines.values():
+            spine.set_color(background_secondary)
+
+        ax.grid(True, color=background_primary)
+        ax.legend()
+
+        fig.tight_layout()
+        fig.savefig(filepath, format="png", dpi=100)
+        plt.close(fig)
+
+        return num_per_batch
+
+    @staticmethod
+    def generate_pillar_graph(array, filepath: str,
+                              title: str = "",
+                              name_x: str = "",
+                              name_y: str = "" ):
+        array = np.asarray(array, dtype=int).flatten()
+
+        fig, ax = plt.subplots(figsize=(8, 6), dpi=100)
+
+        x = np.arange(len(array))
+        ax.bar(x, array)
+
+        ax.set_title(title, color=light_background)
+        fig.patch.set_color(background_secondary)
+        ax.patch.set_color(background_secondary)
+        ax.tick_params(colors=light_background)
+
+        ax.set_xlabel(name_x, color=light_background)
+        ax.set_ylabel(name_y, color=light_background)
+
+        for spine in ax.spines.values():
+            spine.set_color(background_secondary)
+
+        ax.grid(axis="y", color=background_primary)
+
+        fig.tight_layout()
         fig.savefig(filepath, format="png", dpi=100)
         plt.close(fig)
