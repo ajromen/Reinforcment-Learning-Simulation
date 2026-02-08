@@ -28,7 +28,7 @@ class CreatureLoader:
         return creature
 
     @staticmethod
-    def ui_to_creature(joints, bones, muscles) -> Creature | None:
+    def ui_to_creature(joints, bones, muscles, layer_widths) -> Creature | None:
         min_x = 0  # vrati na 1000 ako hoces top left
         min_y = 0
         joints_save = []
@@ -58,16 +58,16 @@ class CreatureLoader:
             bone_save.append(b)
 
         id = uuid.uuid4()
-        creature = Creature(id, joints_save, bone_save, muscle_save)
+        creature = Creature(id, joints_save, bone_save, muscle_save, layer_widths)
         return creature
 
     @staticmethod
-    def creature_to_ui(creature: Creature) -> Tuple[List[JointComponent], List[BoneComponent], List[MuscleComponent]]:
+    def creature_to_ui(creature: Creature, scale = 30) -> Tuple[List[JointComponent], List[BoneComponent], List[MuscleComponent]]:
 
         joint_map = {}
         joints_ui: List[JointComponent] = []
         for j in creature.joints:
-            joint_ui = JointComponent(coords=(j.x*25, j.y*25), pos=(j.x, j.y), id=j.id)
+            joint_ui = JointComponent(coords=(j.x*scale, j.y*scale), pos=(j.x, j.y), id=j.id)
             joints_ui.append(joint_ui)
             joint_map[j.id] = joint_ui
 
@@ -90,8 +90,8 @@ class CreatureLoader:
         return joints_ui, bones_ui, muscles_ui
 
     @staticmethod
-    def save(joints, bones, muscles):
-        creature = CreatureLoader.ui_to_creature(joints, bones, muscles)
+    def save(joints, bones, muscles, layer_widths):
+        creature = CreatureLoader.ui_to_creature(joints, bones, muscles, layer_widths)
         if creature is None: return False
         return CreatureLoader.save_creature(creature)
 

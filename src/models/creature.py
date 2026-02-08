@@ -8,12 +8,14 @@ class Creature:
     joints: list[Joint]
     bones: list[Bone]
     muscles: list[Muscle]
+    layer_widths: list[int]
 
-    def __init__(self, id, joints, bones, muscles):
+    def __init__(self, id, joints, bones, muscles, layer_widths):
         self.id = id
         self.joints = joints
         self.bones = bones
         self.muscles = muscles
+        self.layer_widths = layer_widths
 
     def to_dict(self):
         return {
@@ -21,6 +23,7 @@ class Creature:
             "joints": [j.to_dict() for j in self.joints],
             "bones": [b.to_dict() for b in self.bones],
             "muscles": [m.to_dict() for m in self.muscles],
+            "layer_widths": self.layer_widths
         }
 
     def get_bone(self, bone_id) -> Bone | None:
@@ -46,4 +49,5 @@ class Creature:
         joints = [Joint.from_dict(j) for j in data.get("joints", [])]
         bones = [Bone.from_dict(b) for b in data.get("bones", [])]
         muscles = [Muscle.from_dict(m) for m in data.get("muscles", [])]
-        return cls(data["id"], joints, bones, muscles)
+        layer_widths = data.get("layer_widths", [])
+        return cls(data["id"], joints, bones, muscles, layer_widths)

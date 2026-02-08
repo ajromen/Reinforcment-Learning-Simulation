@@ -2,6 +2,7 @@ import json
 import math
 import os.path
 import time
+from datetime import datetime
 
 from src.ui.ui_settings import WINDOW_WIDTH
 
@@ -18,6 +19,7 @@ class SimulationStats:
         self.simulation_time = 0
         self.number_of_episodes = 0
         self.steps_per_episode = steps_per_episode
+        self.date_time = datetime.now()
 
         # per episode
         self.episode_start_time = time.time()
@@ -27,7 +29,6 @@ class SimulationStats:
         self.max_x_episode = 0
         self.act_sum = 0
         self.activations = 0
-
 
     def episode_end(self, steps, final_dist):
         dist = self.get_dist_m()
@@ -89,6 +90,7 @@ class SimulationStats:
             "rewards_per_episode": self.rewards_per_episode,
             "last_dist_per_episode": self.last_dist_per_episode,
             "activation_per_episode": self.activation_per_episode,
+            "date_time": self.date_time.strftime("%Y-%m-%d %H:%M:%S")
         }
 
         with open(filepath, "w") as f:
@@ -109,3 +111,4 @@ class SimulationStats:
         self.rewards_per_episode = data["rewards_per_episode"]
         self.last_dist_per_episode = data["last_dist_per_episode"]
         self.activation_per_episode = data["activation_per_episode"]
+        self.date_time = datetime.strptime(data["date_time"], "%Y-%m-%d %H:%M:%S")

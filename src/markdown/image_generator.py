@@ -1,12 +1,15 @@
+import io
 import os
+from pathlib import Path
 
 import pygame
+from matplotlib import pyplot as plt
 from pygame import Vector2
 
 from src.models.creature import Creature
 from src.pymunk.creature_pymunk import CreaturePymunk
 from src.ui import colors
-from src.ui.colors import bone_rgb, background_primary
+from src.ui.colors import bone_rgb, background_primary, light_background, background_secondary
 from src.ui.image_manager import ImageManager
 from src.ui.text_renderer import TextRenderer
 from src.utils.creature_loader import CreatureLoader
@@ -17,6 +20,10 @@ class ImageGenerator:
     def generate_creature_image(creature: Creature, save_path: str):
         if os.path.exists(save_path):
             return
+
+        path = Path(save_path)
+        path.parent.mkdir(parents=True, exist_ok=True)
+
         pygame.init()
         TextRenderer.clear_all()
         ImageManager.clear_all()
@@ -77,3 +84,26 @@ class ImageGenerator:
         pygame.quit()
         ImageManager.clear_all()
         TextRenderer.clear_all()
+
+    @staticmethod
+    def generate_graph(array, filepath: str, title: str = "", name_x: str = "", name_y: str = ""):
+        fig, ax = plt.subplots(figsize=(8, 6), dpi=100)  # small figure
+        ax.plot(array, color=light_background, linewidth=2)
+        ax.set_title(title, color=light_background)
+        fig.patch.set_color(background_secondary)
+        ax.patch.set_color(background_secondary)
+        ax.tick_params(colors=light_background)
+
+        ax.set_xlabel(name_x, color=light_background)
+        ax.set_ylabel(name_y, color=light_background)
+
+        ax.spines['bottom'].set_color(background_secondary)
+        ax.spines['top'].set_color(background_secondary)
+        ax.spines['left'].set_color(background_secondary)
+        ax.spines['right'].set_color(background_secondary)
+
+        ax.grid(True, color=background_primary)
+        fig.tight_layout()
+
+        fig.savefig(filepath, format="png", dpi=100)
+        plt.close(fig)

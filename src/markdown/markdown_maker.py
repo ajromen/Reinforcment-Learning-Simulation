@@ -1,4 +1,7 @@
+from pathlib import Path
+
 from src.agents.agent import Agent
+from src.markdown.image_generator import ImageGenerator
 from src.models.creature import Creature
 
 from src.simulation.simulation_settings import SimulationSettings
@@ -10,20 +13,54 @@ class MarkdownMaker:
     def __init__(self,
                  creature: Creature,
                  save_path: str,
+                 assets_path: str,
                  model: Agent,
                  settings: SimulationSettings,
                  stats: SimulationStats):
         self.text = ""
+        self.assets_path = assets_path
         self.creature = creature
         self.model = model
         self.save_path = save_path
         self.settings = settings
         self.stats = stats
 
+    def _generate_assets(self):
+        ImageGenerator.generate_creature_image(self.creature, self.save_path + self.assets_path + "/creature.png")
+        ImageGenerator.generate_graph(self.stats.dist_per_episode,
+                                      self.save_path + self.assets_path + "/max_dist.png",
+                                      "Max distance per episode",
+                                      "Episode", "Distance")
+
+        ImageGenerator.generate_graph(self.stats.last_dist_per_episode,
+                                      self.save_path + self.assets_path + "/last_dist.png",
+                                      "Last distance per episode",
+                                      "Episode", "Distance")
+
+        ImageGenerator.generate_graph(self.stats.time_per_episode,
+                                      self.save_path + self.assets_path + "/time.png",
+                                      "Time per episode",
+                                      "Episode", "Time (s)")
+
+        ImageGenerator.generate_graph(self.stats.activation_per_episode,
+                                      self.save_path + self.assets_path + "/activation.png",
+                                      "Avg activation per episode",
+                                      "Episode", "Activation avg")
+
+        ImageGenerator.generate_graph(self.stats.rewards_per_episode,
+                                      self.save_path + self.assets_path + "/rewards.png",
+                                      "Rewards per episode",
+                                      "Episode", "Distance")
+
+
+
     def generate_markdown(self):
-        self.add_h3(APP_NAME)
-        self.add_h1(self.model.name+" method")
-        self.add_image(self.save_path+"creature.png", "Creature image")
+        self._generate_assets()
+        self.add_h4(APP_NAME)
+        self.add_h1(self.model.name + " method")
+        self.add_image(self.assets_path + "creature.png", "Creature image")
+        self.add_image(self.assets_path + "max_dist.png", "Max distance graph")
+        self.add_image(self.assets_path + "last_dist.png", "Last distance graph")
 
     def save_markdown(self, save_path: str):
         with open(save_path, "w", encoding="utf-8") as f:
@@ -39,6 +76,9 @@ class MarkdownMaker:
 
     def add_h3(self, text: str):
         self.text += f"### {text}\n\n"
+
+    def add_h4(self, text: str):
+        self.text += f"#### {text}\n\n"
 
     # text
 
@@ -90,7 +130,3 @@ class MarkdownMaker:
         for row in rows:
             self.text += "| " + " | ".join(map(str, row)) + " |\n"
         self.text += "\n"
-
-    def save(self):
-        with open(self.save_path + self.model.name + ".md", "w", encoding="utf-8") as f:
-            f.write(self.text)

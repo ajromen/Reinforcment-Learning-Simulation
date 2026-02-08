@@ -100,7 +100,7 @@ class CreationScene:
 
             if self.mode == 'learn':
                 creature = CreatureLoader.ui_to_creature(self.joints.values(), self.bones.values(),
-                                                         self.muscles.values())
+                                                         self.muscles.values(), self.layer_widths)
                 if creature is None:
                     self.print_notif(False)
                 else:
@@ -110,10 +110,10 @@ class CreationScene:
                 clicked = False
 
             if self.mode == 'continue':
-                creature = CreatureLoader.load(SAVE_FILE_PATH+str(self.id)+"/creature.json")
+                creature = CreatureLoader.load(SAVE_FILE_PATH + str(self.id) + "/creature.json")
                 if creature is None:
                     return None
-                return creature, self.layer_widths, True
+                return creature, creature.layer_widths, True
 
             self.mode_func(clicked)
 
@@ -322,7 +322,7 @@ class CreationScene:
     def neural_network_button(self, clicked):
         conf = ConfigureNetwork(self.window, self.depth, self.layer_widths)
         depth, layer_widths = conf.start()
-        if depth != self.depth or layer_widths!=self.layer_widths:
+        if depth != self.depth or layer_widths != self.layer_widths:
             self.turn_of_can_continue()
 
         self.switch_to_select()
@@ -372,7 +372,7 @@ class CreationScene:
 
     def save(self, _):
         self.turn_of_can_continue()
-        done = CreatureLoader.save(self.joints.values(), self.bones.values(), self.muscles.values())
+        done = CreatureLoader.save(self.joints.values(), self.bones.values(), self.muscles.values(), self.layer_widths)
 
         self.print_notif(done)
 
@@ -397,6 +397,7 @@ class CreationScene:
             pygame.display.flip()
 
     def creature_to_ui(self, creature: Creature):
+        self.layer_widths = creature.layer_widths
         self.id = creature.id
         for joint in creature.joints:
             pos = (joint.x, joint.y)
