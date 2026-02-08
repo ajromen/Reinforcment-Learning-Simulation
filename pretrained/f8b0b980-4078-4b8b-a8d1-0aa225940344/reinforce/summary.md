@@ -6,13 +6,13 @@
 ## Simulation Information
 
 - **Method :** REINFORCE
-- **Date Time:** 08-02-2026 14:46:51
+- **Date Time:** 08-02-2026 18:26:54
 - **Device:** CPU
 - **Physics Timestamp:**  1/60s
 - **Physics Substeps:** 30
-- **Total Simulation Time:** 00h:03m:40s
+- **Total Simulation Time:** 00h:00m:35s
 - **Number of Steps per Episode:** 540
-- **Number of Episodes:** 138
+- **Number of Episodes:** 29
   
 
 ---
@@ -76,17 +76,53 @@ This graph show how many times per episode is maximum distance equal to final di
 
 ![Max reached per batch](assets/distances_bar.png)
 
+### Times per episode
+
+Here we can see spikes in time when parameter update is being called and also times when the episode is terminated prematurely.(Letting the simulation run visually will be visible because of the longer time)
+
+![Last distance graph](assets/time.png)
+
+### Activation per episode
+
+Number increases as the muscle is activated more strongly. Per episode average is displayed.
+
+![Last distance graph](assets/activation.png)
+
+
+
+### Rewards per episode
+
+Main goal of any method maximize rewards. Per episode average is displayed.
+
+![Last distance graph](assets/rewards.png)
+
   
 
 ---
 
-![Last distance graph](assets/max_dist.png)
+### Best vs First Episode
 
-![Last distance graph](assets/last_dist.png)
+|  | **First Episode**  | **Best Episode**  |
+| --- | --- | --- |
+| **Episode Index**  | 0 | 2 |
+| **Max Distance**  | 1.25m | 2.72m |
+| **Last Distance**  | 1.25m | 2.47m |
+| **Average Activation**  | 2.80 | 2.77 |
+| **Average Rewards**  | -0.48 | 1.81 |
+| **Time**  | 00m:02s | <1s |
 
-![Last distance graph](assets/time.png)
+### Graph Comparison
 
-![Last distance graph](assets/activation.png)
+Activation per neuron and rewards per step.
 
-![Last distance graph](assets/rewards.png)
+![](assets//episode_comparison.png)
 
+  
+
+---
+
+## Notes
+
+- This report was generated automatically after simulation completion.
+- All conclusions should be made visually by the reader.
+- For more information go to the [github repository](https://github.com/ajromen/Reinforcment-Learning-Simulation).

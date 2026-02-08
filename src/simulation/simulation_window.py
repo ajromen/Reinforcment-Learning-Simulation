@@ -385,7 +385,7 @@ class SimulationWindow:
             self.creature.motors[i].rate = float(a) * self.settings.max_motor_rate
             self.stats.act_sum += abs(a)
         self.stats.activations += self.stats.act_sum
-
+        self.stats.activations_per_neuron.append(activation)
         self.stats.update_max_x(self.curr_center[0])
 
     def model_reward(self):
@@ -409,7 +409,7 @@ class SimulationWindow:
             done = True
 
         self.model.reward(reward)
-        self.stats.curr_episode_rewards += reward
+        self.stats.rewards_per_step.append(reward)
         self.stats.last_reward = reward
 
         if done:

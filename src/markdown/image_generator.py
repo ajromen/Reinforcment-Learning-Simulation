@@ -194,3 +194,130 @@ class ImageGenerator:
         fig.tight_layout()
         fig.savefig(filepath, format="png", dpi=100)
         plt.close(fig)
+
+    @staticmethod
+    def generate_activations_per_neuron_single_episode(
+            activations_per_neuron: list[list[float]],
+            filepath: str,
+            title: str = "Neuron Activations (Single Episode)"
+    ):
+        if not activations_per_neuron:
+            return
+
+        activations_array = np.array(activations_per_neuron)
+        num_neurons = activations_array.shape[1]
+
+        fig, ax = plt.subplots(figsize=(10, 6), dpi=100)
+        for neuron_idx in range(num_neurons):
+            ax.plot(activations_array[:, neuron_idx], label=f"Neuron {neuron_idx + 1}", linewidth=2)
+
+        ax.set_title(title, color=light_background)
+        fig.patch.set_color(background_secondary)
+        ax.patch.set_color(background_secondary)
+        ax.tick_params(colors=light_background)
+        ax.set_xlabel("Step", color=light_background)
+        ax.set_ylabel("Activation", color=light_background)
+        ax.grid(True, color=background_primary)
+        ax.legend()
+        fig.tight_layout()
+        fig.savefig(filepath, format="png", dpi=100)
+        plt.close(fig)
+
+    @staticmethod
+    def generate_episode_comparison_grid(
+            first_activations,
+            first_rewards,
+            best_activations,
+            best_rewards,
+            filepath: str,
+            title: str = "First vs Best Episode"
+    ):
+        fig, axs = plt.subplots(2, 2, figsize=(14, 10))
+        fig.suptitle(title, fontsize=16, color=light_background)
+
+        first_act = np.array(first_activations)
+        for i in range(first_act.shape[1]):
+            axs[0, 0].plot(first_act[:, i], label=f"Neuron {i}")
+        axs[0, 0].set_title("First Episode – Activations")
+        axs[0, 0].set_xlabel("Step")
+        axs[0, 0].set_ylabel("Activation")
+
+        axs[0, 1].plot(first_rewards)
+        axs[0, 1].set_title("First Episode – Rewards per Step")
+        axs[0, 1].set_xlabel("Step")
+        axs[0, 1].set_ylabel("Reward")
+
+        best_act = np.array(best_activations)
+        for i in range(best_act.shape[1]):
+            axs[1, 0].plot(best_act[:, i], label=f"Neuron {i}")
+        axs[1, 0].set_title("Best Episode – Activations")
+        axs[1, 0].set_xlabel("Step")
+        axs[1, 0].set_ylabel("Activation")
+
+        axs[1, 1].plot(best_rewards)
+        axs[1, 1].set_title("Best Episode – Rewards per Step")
+        axs[1, 1].set_xlabel("Step")
+        axs[1, 1].set_ylabel("Reward")
+
+        fig.patch.set_facecolor(background_secondary)
+
+
+        ImageGenerator._style_axis(
+            axs[0, 0],
+            "First Episode – Activations",
+            "Step", "Activation",
+            background_primary,
+            background_secondary,
+            light_background
+        )
+
+        ImageGenerator._style_axis(
+            axs[0, 1],
+            "First Episode – Rewards",
+            "Step", "Reward",
+            background_primary,
+            background_secondary,
+            light_background
+        )
+
+        ImageGenerator._style_axis(
+            axs[1, 0],
+            "Best Episode – Activations",
+            "Step", "Activation",
+            background_primary,
+            background_secondary,
+            light_background
+        )
+
+        ImageGenerator._style_axis(
+            axs[1, 1],
+            "Best Episode – Rewards",
+            "Step", "Reward",
+            background_primary,
+            background_secondary,
+            light_background
+        )
+
+        plt.tight_layout(rect=[0, 0, 1, 0.96])
+        plt.savefig(filepath)
+        plt.close()
+
+    @staticmethod
+    def _style_axis(ax, title, name_x, name_y,
+                    background_primary,
+                    background_secondary,
+                    light_background):
+
+        ax.set_title(title, color=light_background)
+
+        ax.set_xlabel(name_x, color=light_background)
+        ax.set_ylabel(name_y, color=light_background)
+
+        ax.tick_params(colors=light_background)
+
+        ax.set_facecolor(background_secondary)
+
+        for spine in ax.spines.values():
+            spine.set_color(background_secondary)
+
+        ax.grid(axis="y", color=background_primary)

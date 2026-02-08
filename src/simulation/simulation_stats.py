@@ -4,7 +4,46 @@ import os.path
 import time
 from datetime import datetime
 
+import numpy as np
+from torch.cuda import seed_all
+
 from src.ui.ui_settings import WINDOW_WIDTH
+
+
+class EpisodeStats:
+    def __init__(self, activations_per_neuron: list,
+                 max_dist: float,
+                 last_dist: float,
+                 rewards_per_step: list,
+                 time,
+                 index):
+        self.activations_per_neuron = activations_per_neuron
+        self.max_dist = max_dist
+        self.last_dist = last_dist
+        self.rewards_per_step = rewards_per_step
+        self.time = time
+        self.index = index
+
+    def to_dict(self):
+        return {
+            "activations_per_neuron": self.activations_per_neuron,
+            "max_dist": self.max_dist,
+            "last_dist": self.last_dist,
+            "rewards_per_step": self.rewards_per_step,
+            "time": self.time,
+            "index": self.index
+        }
+
+    @classmethod
+    def from_dict(cls, data: dict):
+        return cls(
+            activations_per_neuron=data.get("activations_per_neuron", []),
+            max_dist=data.get("max_dist", 0),
+            last_dist=data.get("last_dist", 0),
+            rewards_per_step=data.get("rewards_per_step", []),
+            time=data.get("time", 0),
+            index=data.get("index", 0)
+        )
 
 
 class SimulationStats:
@@ -22,31 +61,56 @@ class SimulationStats:
         self.date_time = datetime.now()
         self.device = str(device)
         self.max_dist = 0
+        self.first_episode_data: EpisodeStats | None = None
+        self.best_episode_data: EpisodeStats | None = None
 
         # per episode
+        self.activations_per_neuron = []
+        self.rewards_per_step = []
         self.episode_start_time = time.time()
         self.last_reward = 0
-        self.curr_episode_rewards = 0
         self.max_x_episode = 0
         self.act_sum = 0
         self.activations = 0
+        self.is_first_episode = True
 
     def episode_end(self, steps, final_dist):
+        final_dist = float((final_dist - WINDOW_WIDTH // 2) / 200)
         dist = self.get_dist_m()
         self.dist_per_episode.append(dist)
+        duration = time.time() - self.episode_start_time
         if dist > self.max_dist:
             self.max_dist = dist
+            self.best_episode_data = EpisodeStats(
+                self.activations_per_neuron.copy(),
+                self.max_dist,
+                final_dist,
+                self.rewards_per_step.copy(),
+                duration,
+                self.number_of_episodes
+            )
+        if self.number_of_episodes == 0:
+            self.first_episode_data = EpisodeStats(
+                self.activations_per_neuron.copy(),
+                self.max_dist,
+                final_dist,
+                self.rewards_per_step.copy(),
+                duration,
+                0
+            )
         self.number_of_episodes += 1
-        self.time_per_episode.append(time.time() - self.episode_start_time)
+        self.time_per_episode.append(duration)
         self.episode_start_time = time.time()
-        self.last_dist_per_episode.append(float((final_dist - WINDOW_WIDTH // 2) / 200))
+        self.last_dist_per_episode.append(final_dist)
 
         if steps == 0:
             return
 
-        reward = self.curr_episode_rewards / steps
+        self.activations_per_neuron = []
+
+        reward = np.average(self.rewards_per_step)
         self.rewards_per_episode.append(float(reward))
-        self.curr_episode_rewards = 0
+        self.rewards_per_step = []
 
         activation = self.activations / steps
         self.activation_per_episode.append(float(activation))
@@ -93,11 +157,12 @@ class SimulationStats:
             "activation_per_episode": self.activation_per_episode,
             "date_time": self.date_time.strftime("%Y-%m-%d %H:%M:%S"),
             "device": self.device,
-            "max_dist": self.max_dist,
+            "first_episode_data": self.first_episode_data.to_dict() if self.first_episode_data else None,
+            "best_episode_data": self.best_episode_data.to_dict() if self.best_episode_data else None,
         }
 
         with open(filepath, "w") as f:
-            json.dump(data, f, indent=2)
+            json.dump(data, f, indent=2, cls=NumpyEncoder)
 
     def load_from_file(self, filepath):
         if not os.path.exists(filepath):
@@ -116,4 +181,18 @@ class SimulationStats:
         self.activation_per_episode = data["activation_per_episode"]
         self.date_time = datetime.strptime(data["date_time"], "%Y-%m-%d %H:%M:%S")
         self.device = data["device"]
-        self.max_dist = data["max_dist"]
+        self.first_episode_data = EpisodeStats.from_dict(data["first_episode_data"]) if data[
+            "first_episode_data"] else None
+        self.best_episode_data = EpisodeStats.from_dict(data["best_episode_data"]) if data[
+            "best_episode_data"] else None
+
+
+class NumpyEncoder(json.JSONEncoder):
+    def default(self, obj):
+        if isinstance(obj, (np.ndarray,)):
+            return obj.tolist()  # convert array to list
+        if isinstance(obj, (np.float32, np.float64)):
+            return float(obj)
+        if isinstance(obj, (np.int32, np.int64)):
+            return int(obj)
+        return super().default(obj)

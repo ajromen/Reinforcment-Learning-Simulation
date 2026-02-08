@@ -1,5 +1,6 @@
 from pathlib import Path
 
+import numpy as np
 from numpy.ma.core import equal
 
 from src.agents.agent import Agent
@@ -54,8 +55,7 @@ class MarkdownMaker:
                                       "Rewards per episode",
                                       "Episode", "Distance")
 
-        list_2 = [(li - 600) / 200 for li in self.stats.last_dist_per_episode]
-        num_per_batch = ImageGenerator.generate_comparison_graph(list_2,
+        num_per_batch = ImageGenerator.generate_comparison_graph(self.stats.last_dist_per_episode,
                                                                  self.stats.dist_per_episode,
                                                                  self.save_path + self.assets_path + "/distances.png",
                                                                  "Distances per episode",
@@ -67,6 +67,16 @@ class MarkdownMaker:
                                              self.save_path + self.assets_path + "/distances_bar.png",
                                              "Max reached per batch",
                                              "Batch number", "Times")
+
+        if self.stats.first_episode_data is not None and self.stats.best_episode_data is not None:
+            ImageGenerator.generate_episode_comparison_grid(
+                self.stats.first_episode_data.activations_per_neuron[100:161],
+                self.stats.first_episode_data.rewards_per_step[100:161],
+                self.stats.best_episode_data.activations_per_neuron[100:161],
+                self.stats.best_episode_data.rewards_per_step[100:161],
+                self.save_path + self.assets_path + "/episode_comparison.png",
+                "First vs Best Episode (2s)"
+            )
 
     def generate_markdown(self):
         self._generate_assets()
@@ -135,18 +145,71 @@ class MarkdownMaker:
 
         self.add_image(self.assets_path + "distances_bar.png", "Max reached per batch")
 
+        self.add_h3("Times per episode")
+        self.add_text(
+            "Here we can see spikes in time when parameter update is being called and also times when the episode is terminated prematurely."
+            "(Letting the simulation run visually will be visible because of the longer time)")
+        self.add_image(self.assets_path + "time.png", "Last distance graph")
+
+        self.add_h3("Activation per episode")
+        self.add_text("Number increases as the muscle is activated more strongly. Per episode average is displayed.")
+        self.add_image(self.assets_path + "activation.png", "Last distance graph")
+        self.add_text("")
+
+        self.add_h3("Rewards per episode")
+        self.add_text("Main goal of any method maximize rewards. Per episode average is displayed.")
+        self.add_image(self.assets_path + "rewards.png", "Last distance graph")
+
         self.add_br()
         self.add_hr()
 
-        self.add_image(self.assets_path + "max_dist.png", "Last distance graph")
-        self.add_image(self.assets_path + "last_dist.png", "Last distance graph")
-        self.add_image(self.assets_path + "time.png", "Last distance graph")
-        self.add_image(self.assets_path + "activation.png", "Last distance graph")
-        self.add_image(self.assets_path + "rewards.png", "Last distance graph")
+        if self.stats.first_episode_data is not None and self.stats.best_episode_data is not None:
+            self.add_h3("Best vs First Episode")
+
+            first = self.stats.first_episode_data
+            best = self.stats.best_episode_data
+            columns = ["", self.bold("First Episode"), self.bold("Best Episode")]
+            rows = [
+                [self.bold("Episode Index"), str(first.index), str(best.index)],
+                [self.bold("Max Distance"), f2d(first.max_dist) + "m", f2d(best.max_dist) + "m"],
+                [self.bold("Last Distance"), f2d(first.last_dist) + "m", f2d(best.last_dist) + "m"],
+                [self.bold("Average Activation"),
+                 f2d(np.average(np.sum(np.abs(first.activations_per_neuron), axis=1))),
+                 f2d(np.average(np.sum(np.abs(best.activations_per_neuron), axis=1)))],
+                [self.bold("Average Rewards"),
+                 f2d(np.average(first.rewards_per_step)),
+                 f2d(np.average(best.rewards_per_step))],
+                [self.bold("Time"),
+                 self.get_time_from_s(first.time),
+                 self.get_time_from_s(best.time),
+                 ]
+            ]
+            self.add_table(columns, rows)
+
+            self.add_h3("Graph Comparison")
+            self.add_text("Activation per neuron and rewards per step.")
+            self.add_image(self.assets_path + "/episode_comparison.png")
+
+            self.add_br()
+            self.add_hr()
+
+        self.add_h2("Notes")
+        self.add_li("This report was generated automatically after simulation completion.")
+        self.add_li("All conclusions should be made visually by the reader.")
+        self.add_li("For more information go to the " + self.link("github repository",
+                                                                "https://github.com/ajromen/Reinforcment-Learning-Simulation") + ".")
+
 
     def save_markdown(self, save_path: str):
         with open(save_path, "w", encoding="utf-8") as f:
             f.write(self.text)
+
+    def get_time_from_s(self, time: float):
+        min = (int(time) % 3600) // 60
+        sec = int(time) % 60
+        if min == 0 and sec == 0:
+            return "<1s"
+        return f"{min:02d}m:{sec:02d}s"
 
     # headings
 
@@ -159,22 +222,16 @@ class MarkdownMaker:
     def add_h3(self, text: str):
         self.text += f"### {text}\n\n"
 
-    def add_h4(self, text: str):
-        self.text += f"#### {text}\n\n"
-
     # text
 
     def add_text(self, text: str):
         self.text += f"{text}\n\n"
 
-    def add_bold(self, text: str):
-        self.text += f"**{text}**\n\n"
-
-    def add_italic(self, text: str):
-        self.text += f"*{text}*\n\n"
-
     def bold(self, text):
         return f"**{text}** "
+
+    def link(self, name, address):
+        return f"[{name}]({address})"
 
     # breaks
 
@@ -189,11 +246,6 @@ class MarkdownMaker:
     def add_image(self, path: str, alt: str = ""):
         self.text += f"![{alt}]({path})\n\n"
 
-    def add_list(self, items):
-        for item in items:
-            self.text += f"- {item}\n"
-        self.text += "\n"
-
     def add_list_from_dict(self, dict, nesting=0):
         for k, v in dict.items():
             self.text += "\t" * nesting
@@ -203,18 +255,7 @@ class MarkdownMaker:
     def add_li(self, text):
         self.text += f"- {text}\n"
 
-    def add_numbered_list(self, items):
-        for i, item in enumerate(items, start=1):
-            self.text += f"{i}. {item}\n"
-        self.text += "\n"
-
     # code
-
-    def add_code_block(self, code: str, lang: str = ""):
-        self.text += f"```{lang}\n{code}\n```\n\n"
-
-    def add_inline_code(self, code: str):
-        self.text += f"`{code}`\n"
 
     def inline_code(self, code: str):
         return f"`{code}`"
@@ -227,3 +268,7 @@ class MarkdownMaker:
         for row in rows:
             self.text += "| " + " | ".join(map(str, row)) + " |\n"
         self.text += "\n"
+
+
+def f2d(text):
+    return f"{text:.2f}"
