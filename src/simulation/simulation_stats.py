@@ -8,7 +8,7 @@ from src.ui.ui_settings import WINDOW_WIDTH
 
 
 class SimulationStats:
-    def __init__(self, steps_per_episode):
+    def __init__(self, steps_per_episode, device):
         # per simulation
         self.dist_per_episode = []
         self.time_per_episode = []
@@ -20,6 +20,7 @@ class SimulationStats:
         self.number_of_episodes = 0
         self.steps_per_episode = steps_per_episode
         self.date_time = datetime.now()
+        self.device = device
 
         # per episode
         self.episode_start_time = time.time()
@@ -90,7 +91,8 @@ class SimulationStats:
             "rewards_per_episode": self.rewards_per_episode,
             "last_dist_per_episode": self.last_dist_per_episode,
             "activation_per_episode": self.activation_per_episode,
-            "date_time": self.date_time.strftime("%Y-%m-%d %H:%M:%S")
+            "date_time": self.date_time.strftime("%Y-%m-%d %H:%M:%S"),
+            "device": self.device
         }
 
         with open(filepath, "w") as f:
@@ -112,3 +114,4 @@ class SimulationStats:
         self.last_dist_per_episode = data["last_dist_per_episode"]
         self.activation_per_episode = data["activation_per_episode"]
         self.date_time = datetime.strptime(data["date_time"], "%Y-%m-%d %H:%M:%S")
+        self.device = data["device"]

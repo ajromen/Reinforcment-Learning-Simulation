@@ -28,7 +28,7 @@ simulation_path = save_path + agent.name.lower() + "/"
 # win.start()
 
 # md maker
-stats = SimulationStats(540)
+stats = SimulationStats(540,"cuda")
 settings = SimulationSettings()
 agent.load_from_file(simulation_path + "model.pt")
 stats.load_from_file(simulation_path + "stats.json")

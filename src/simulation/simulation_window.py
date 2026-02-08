@@ -50,7 +50,7 @@ class SimulationWindow:
         self.camera_offset = pygame.math.Vector2(0, 0)
         self.screen_center = pygame.math.Vector2(WINDOW_WIDTH // 2, WINDOW_HEIGHT // 2)
 
-        self.stats = SimulationStats(NUM_OF_STEPS_PER_EPISODE)
+        self.stats = SimulationStats(NUM_OF_STEPS_PER_EPISODE, self.model.device)
 
         self.show_muscles = SHOW_MUSCLES
         self.debug_view = DEBUG_DRAW

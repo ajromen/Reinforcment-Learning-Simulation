@@ -52,13 +52,58 @@ class MarkdownMaker:
                                       "Rewards per episode",
                                       "Episode", "Distance")
 
-
+    # dodaj: best episode index, distance, time, gif
+    # reward calculation
+    # timestamp fizika
+    # creature id
+    # number of bones
+    # number of joints
+    # number of muscles
+    # nn
+    # method name
+    # number of params
+    # number of imputs
+    # number of outputs
+    # for each model in method (actor/critic)
+    # learning rate and rest of the hyperparams
+    # statistics
+    # number of episodes
+    # episode length in steps/seconds
+    # graphs
+    # rewards per episode (avg)
+    # max dist per episode
+    # last dist per episode
+    # time per episode
+    # activations per episode (avg showing efficiency)
+    # simulation time
+    # creature image
+    # layer widths
 
     def generate_markdown(self):
         self._generate_assets()
-        self.add_h4(APP_NAME)
-        self.add_h1(self.model.name + " method")
+
+        self.add_h1("Reinforcement Learning Simulation Summary")
+        self.add_hr()
+
+        self.add_h2("Simulation Information")
+        self.add_li(self.bold("Algorithm:")+self.model.name)
+        self.add_li(self.bold("Date Time:")+self.stats.date_time.strftime("%d-%m-%Y %H:%M:%S"))
+        self.add_li(self.bold("Device:")+self.stats.device.upper())
+        self.add_li(self.bold("Physics Timestamp:")+" 1/60")
+        self.add_li(self.bold("Physics Substeps:")+str(self.settings.substeps))
+        self.add_li(self.bold("Total Simulation Time:")+self.stats.get_elapsed_time())
+        self.add_br()
+        self.add_hr()
+
+        self.add_h2("Creature Information")
+        self.add_li(self.bold("Creature ID:"+str(self.creature.id)))
+        self.add_li(self.bold("Joints:")+str(len(self.creature.joints)))
+        self.add_li(self.bold("Bones:")+str(len(self.creature.bones)))
+        self.add_li(self.bold("Muscles:")+str(len(self.creature.muscles)))
+        self.add_br()
         self.add_image(self.assets_path + "creature.png", "Creature image")
+
+
         self.add_image(self.assets_path + "max_dist.png", "Max distance graph")
         self.add_image(self.assets_path + "last_dist.png", "Last distance graph")
 
@@ -91,6 +136,9 @@ class MarkdownMaker:
     def add_italic(self, text: str):
         self.text += f"*{text}*\n\n"
 
+    def bold(self, text):
+        return f"**{text}** "
+
     # breaks
 
     def add_br(self):
@@ -108,6 +156,9 @@ class MarkdownMaker:
         for item in items:
             self.text += f"- {item}\n"
         self.text += "\n"
+
+    def add_li(self, text):
+        self.text+= f"- {text}\n"
 
     def add_numbered_list(self, items):
         for i, item in enumerate(items, start=1):

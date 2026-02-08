@@ -62,7 +62,7 @@ class CreatureLoader:
         return creature
 
     @staticmethod
-    def creature_to_ui(creature: Creature, scale = 30) -> Tuple[List[JointComponent], List[BoneComponent], List[MuscleComponent]]:
+    def creature_to_ui(creature: Creature, scale = 25) -> Tuple[List[JointComponent], List[BoneComponent], List[MuscleComponent]]:
 
         joint_map = {}
         joints_ui: List[JointComponent] = []

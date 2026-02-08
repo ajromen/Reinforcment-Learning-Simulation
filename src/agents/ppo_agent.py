@@ -46,7 +46,6 @@ class PPOAgent(Agent):
                  k_epochs: int = 10,
                  entropy_coef: float = 0.01, ):
         super().__init__(layer_widths,"PPO")
-        self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
         self.actor = PPOPolicy(layer_widths).to(self.device)
         critic_layer = list(layer_widths[:-1]) + [1]
