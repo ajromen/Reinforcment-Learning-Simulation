@@ -49,7 +49,7 @@ class AnalysisScene:
             ASSETS_PATH + "brain_alt.png",
             ASSETS_PATH + "brain.png",
             self.run_reinforce,
-            lambda: self.run_reinforce(True,True),
+            lambda: self.run_reinforce(True, True),
             lambda: self.run_reinforce(simple=False, continue_learning=True)
         )
 
@@ -70,53 +70,29 @@ class AnalysisScene:
         self.window.show()
         self.app.exec()
 
-    def run_reinforce(self, simple=False, continue_learning = False):
-        p = Process(target=self._reinforce_process, args=(self.queue, simple,continue_learning,))
+    def run_reinforce(self, simple=False, continue_learning=False):
+        p = Process(target=reinforce_process,
+                    args=(self.queue, self.creature, self.nn_layers, self.save_path, simple, continue_learning,))
         p.start()
 
         self.timer = QTimer()
         self.timer.timeout.connect(self._check_queue)
         self.timer.start(1000)
 
-        self.left.button.setEnabled(False)
-        self.right.button.setEnabled(False)
+        # self.left.button.setEnabled(False)
+        # self.right.button.setEnabled(False)
 
-    def run_ppo(self, simple=False, continue_learning = False):
-        p = Process(target=self._ppo_process, args=(self.queue, simple,continue_learning,))
+    def run_ppo(self, simple=False, continue_learning=False):
+        p = Process(target=ppo_process,
+                    args=(self.queue, self.creature, self.nn_layers, self.save_path, simple, continue_learning,))
         p.start()
 
         self.timer = QTimer()
         self.timer.timeout.connect(self._check_queue)
         self.timer.start(1000)
 
-        self.left.button.setEnabled(False)
-        self.right.button.setEnabled(False)
-
-    def _reinforce_process(self, queue, simple=False, continue_learning=False):
-        agent = ReinforceAgent(self.nn_layers)
-        reinforce_window = SimulationWindow(self.creature, agent, self.save_path + "reinforce/", load_old=continue_learning)
-        if not simple:
-            reinforce_window.start()
-        else:
-            reinforce_window.start_simple()
-        pygame.quit()
-        if not simple:
-            queue.put("reinforce")
-        else:
-            queue.put("reinforce_simple")
-
-    def _ppo_process(self, queue, simple=False, continue_learning = False):
-        agent = PPOAgent(self.nn_layers)
-        ppo_window = SimulationWindow(self.creature, agent, self.save_path + "ppo/",load_old=continue_learning)
-        if not simple:
-            ppo_window.start()
-        else:
-            ppo_window.start_simple()
-        pygame.quit()
-        if not simple:
-            queue.put("ppo")
-        else:
-            queue.put("ppo_simple")
+        # self.left.button.setEnabled(False)
+        # self.right.button.setEnabled(False)
 
     def _check_queue(self):
         if not self.queue.empty():
@@ -127,26 +103,57 @@ class AnalysisScene:
             elif process == "ppo":
                 self.ppo_finished()
             elif process == "ppo_simple":
-                self.left.button.setEnabled(True)
-                self.right.button.setEnabled(False)
+                pass
+                # self.left.button.setEnabled(True)
+                # self.right.button.setEnabled(False)
             elif process == "reinforce_simple":
-                self.left.button.setEnabled(False)
-                self.right.button.setEnabled(True)
+                pass
+                # self.left.button.setEnabled(False)
+                # self.right.button.setEnabled(True)
 
     def ppo_finished(self):
-        self.left.button.setEnabled(True)
-        self.right.button.setEnabled(False)
+        # self.left.button.setEnabled(True)
+        # self.right.button.setEnabled(False)
         if os.path.exists(self.save_path + "ppo/summary.md"):
             self.right.load_markdown(self.save_path + "ppo/summary.md")
             return
-        self.left.button.setEnabled(True)
-        self.right.button.setEnabled(True)
+        # self.left.button.setEnabled(True)
+        # self.right.button.setEnabled(True)
 
     def reinforce_finished(self):
-        self.left.button.setEnabled(False)
-        self.right.button.setEnabled(True)
+        # self.left.button.setEnabled(False)
+        # self.right.button.setEnabled(True)
         if os.path.exists(self.save_path + "reinforce/summary.md"):
             self.left.load_markdown(self.save_path + "reinforce/summary.md")
             return
-        self.left.button.setEnabled(True)
-        self.right.button.setEnabled(True)
+        # self.left.button.setEnabled(True)
+        # self.right.button.setEnabled(True)
+
+
+def reinforce_process(queue, creature, nn_layers, save_path, simple=False, continue_learning=False):
+    agent = ReinforceAgent(nn_layers)
+    reinforce_window = SimulationWindow(creature, agent, save_path + "reinforce/",
+                                        load_old=continue_learning)
+    if not simple:
+        reinforce_window.start()
+    else:
+        reinforce_window.start_simple()
+    pygame.quit()
+    if not simple:
+        queue.put("reinforce")
+    else:
+        queue.put("reinforce_simple")
+
+
+def ppo_process(queue, creature, nn_layers, save_path, simple=False, continue_learning=False):
+    agent = PPOAgent(nn_layers)
+    ppo_window = SimulationWindow(creature, agent, save_path + "ppo/", load_old=continue_learning)
+    if not simple:
+        ppo_window.start()
+    else:
+        ppo_window.start_simple()
+    pygame.quit()
+    if not simple:
+        queue.put("ppo")
+    else:
+        queue.put("ppo_simple")

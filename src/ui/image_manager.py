@@ -88,6 +88,7 @@ class ImageManager:
         ImageManager.learn_button_inactive = invert_image(ImageManager.learn_button_inactive)
         ImageManager.neural_network_button_inactive = invert_image(ImageManager.neural_network_button_inactive)
         ImageManager.load_button_inactive = invert_image(ImageManager.load_button_inactive)
+        ImageManager.save_button_inactive = invert_image(ImageManager.save_button_inactive)
         ImageManager.continue_button_inactive = invert_image(ImageManager.continue_button_inactive)
 
         ImageManager.dots_grid_small = invert_image(ImageManager.dots_grid_small)

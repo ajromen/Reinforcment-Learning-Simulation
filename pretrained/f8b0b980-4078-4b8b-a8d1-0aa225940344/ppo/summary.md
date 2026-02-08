@@ -5,14 +5,14 @@
 
 ## Simulation Information
 
-- **Method :** REINFORCE
-- **Date Time:** 08-02-2026 19:17:37
+- **Method :** PPO
+- **Date Time:** 08-02-2026 20:28:09
 - **Device:** CUDA
 - **Physics Timestamp:**  1/60s
 - **Physics Substeps:** 30
-- **Total Simulation Time:** 00h:49m:16s
+- **Total Simulation Time:** 01h:04m:38s
 - **Number of Steps per Episode:** 540
-- **Number of Episodes:** 799
+- **Number of Episodes:** 890
   
 
 ---
@@ -34,29 +34,38 @@
 
 ## Method Description
 
-REINFORCE is a policy gradient algorithm that
-updates agent policy parameters by increasing the probability of actions that resulted in higher cumulative rewards,
-directly maximizing expected returns without needing a value function.
+Proximal Policy Optimization (PPO) is an on-policy reinforcement learning algorithm that optimizes a clipped surrogate objective to ensure stable policy updates. 
+        In this simulation, PPO is used to control muscle activations directly, balancing forward locomotion with energy efficiency through activation penalties.
 
   
 ## Network Configuration
 
-- **Method:** Vanilla Policy Gradient (REINFORCE)
+- **Method:** Proximal Policy Optimization (PPO)
 - **Inputs:** 52
 - **Outputs:** 5
 ### Network Architecture
 
 - **Actor** 
 	- Layer Widths: `[52, 30, 30, 30, 5]`
-	- Learning Rate: `1e-03`
-	- Activation: `Leaky ReLU`
+	- Learning Rate: `3e-04`
+	- Activation: `Tanh`
 	- Optimizer: `Adam`
 	- Number of Parameters: `3610`
+
+- **Critic** 
+	- Layer Widths: `[52, 30, 30, 30, 1]`
+	- Learning Rate: `1e-04`
+	- Activation: `Leaky ReLU`
+	- Optimizer: `Adam`
+	- Number of Parameters: `3481`
 
 ### Hyperparameters
 
 - Batch Size: `12`
 - Discount Factor: `0.99`
+- Clip Epsilon: `0.2`
+- K Epochs: `10`
+- Entropy Coefficient: `0.01`
 
   
 
@@ -104,12 +113,12 @@ Main goal of any method maximize rewards. Per episode average is displayed.
 
 |  | **First Episode**  | **Best Episode**  |
 | --- | --- | --- |
-| **Episode Index**  | 0 | 384 |
-| **Max Distance**  | 0.38m | 5.77m |
-| **Last Distance**  | -0.26m | 5.68m |
-| **Average Activation**  | 2.75 | 2.81 |
-| **Average Rewards**  | -3.24 | 7.70 |
-| **Time**  | 00m:01s | 00m:06s |
+| **Episode Index**  | 0 | 847 |
+| **Max Distance**  | 1.70m | 9.42m |
+| **Last Distance**  | 1.60m | 9.42m |
+| **Average Activation**  | 2.79 | 3.26 |
+| **Average Rewards**  | 0.17 | 13.11 |
+| **Time**  | 00m:01s | 00m:08s |
 
 ### Graph Comparison
 

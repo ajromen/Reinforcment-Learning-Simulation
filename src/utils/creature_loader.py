@@ -58,7 +58,7 @@ class CreatureLoader:
             bone_save.append(b)
 
         id = uuid.uuid4()
-        creature = Creature(id, joints_save, bone_save, muscle_save, layer_widths)
+        creature = Creature(id, joints_save, bone_save, muscle_save, layer_widths, False)
         return creature
 
     @staticmethod
