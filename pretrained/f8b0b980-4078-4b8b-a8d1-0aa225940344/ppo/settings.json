@@ -1,0 +1,17 @@
+{
+  "bone_width": 10.0,
+  "body_friction": 1.0,
+  "body_mass": 0.8,
+  "overlap_allowed": false,
+  "scale": 15,
+  "max_motor_force": 4000000.0,
+  "substeps": 30,
+  "joint_limits": true,
+  "max_joint_angle": 20,
+  "min_joint_angle": 5,
+  "add_springs": false,
+  "gravity": 1200,
+  "max_motor_rate": 18,
+  "expected_max_angular_velocity": 15,
+  "expected_max_linear_velocity": 15
+}
