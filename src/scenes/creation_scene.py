@@ -41,8 +41,7 @@ class CreationScene:
         self.id = None
 
         # network conf
-        self.depth = 6
-        self.layer_widths = [1, 7, 10, 10, 3, 1]
+        self.layer_widths = [1, 30, 30, 30, 1]
 
         self.last_selected: Bone | Joint | None = None
 
@@ -159,7 +158,7 @@ class CreationScene:
                                  self.window)
         return action
 
-    def turn_of_can_continue(self):
+    def turn_off_can_continue(self):
         self.can_continue = False
         self.buttons.hide_continue_button()
 
@@ -204,7 +203,7 @@ class CreationScene:
         for joint in self.joints.values():
             if joint.pos == location:
                 return
-        self.turn_of_can_continue()
+        self.turn_off_can_continue()
         pos = InputHandler.coords_to_pos(location)
 
         id = "j" + str(self.joint_num)
@@ -224,7 +223,7 @@ class CreationScene:
                     self.last_selected = joint
                     return
             return
-        self.turn_of_can_continue()
+        self.turn_off_can_continue()
         for joint in self.joints.values():
             if joint.check_click():
                 if Bone.check_if_exists(self.last_selected, joint, self.bones.values()): return
@@ -251,7 +250,7 @@ class CreationScene:
                     self.last_selected = bone
                     return
             return
-        self.turn_of_can_continue()
+        self.turn_off_can_continue()
 
         for bone in self.bones.values():
             if bone.check_click():
@@ -272,7 +271,7 @@ class CreationScene:
             self.switch_to_select()
             return
 
-        self.turn_of_can_continue()
+        self.turn_off_can_continue()
         id: str = self.last_selected.id
         self.last_selected = None
         part = id[0]
@@ -301,7 +300,7 @@ class CreationScene:
         self.switch_to_select()
 
     def del_bone(self, id):
-        self.turn_of_can_continue()
+        self.turn_off_can_continue()
         bone = self.bones[id]
 
         bone.joint1.bones = [b for b in bone.joint1.bones if b != bone]
@@ -323,12 +322,13 @@ class CreationScene:
     def continue_func(self, clicked):
         return
 
-    def neural_network_button(self, clicked):
-        conf = ConfigureNetwork(self.window, self.depth, self.layer_widths)
-        depth, layer_widths = conf.start()
-        if depth != self.depth or layer_widths != self.layer_widths:
-            self.turn_of_can_continue()
+    def neural_network_button(self, _):
+        conf = ConfigureNetwork(self.window, self.layer_widths)
+        layer_widths = conf.start()
+        if layer_widths != self.layer_widths:
+            self.turn_off_can_continue()
 
+        self.layer_widths = layer_widths
         self.switch_to_select()
 
     def load(self, _=None):
@@ -375,7 +375,7 @@ class CreationScene:
         self.mode_func = self.select_mode
 
     def save(self, _):
-        self.turn_of_can_continue()
+        self.turn_off_can_continue()
         done = CreatureLoader.save(self.joints.values(), self.bones.values(), self.muscles.values(), self.layer_widths)
 
         self.print_notif(done)
@@ -423,7 +423,7 @@ class CreationScene:
             self.muscle_num += 1
 
     def clear(self, _=None):
-        self.turn_of_can_continue()
+        self.turn_off_can_continue()
         self.unselect()
         self.mode_func = self.select_mode
         self.mode = "select"

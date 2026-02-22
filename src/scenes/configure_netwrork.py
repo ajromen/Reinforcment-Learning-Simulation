@@ -8,10 +8,10 @@ from src.ui.ui_settings import FPS, RADIUS_NEURONS, W_SPACING_NEURONS, H_SPACING
 
 
 class ConfigureNetwork:
-    def __init__(self, window, depth, layer_widths):
+    def __init__(self, window, layer_widths):
         self.window = window
-        self.depth = depth
-        self.layer_widths = layer_widths
+        self.layer_widths = [1]+[layer_widths[i]//3 for i in range(1,len(layer_widths)-1)]+[1]
+        self.depth = len(self.layer_widths)
         self.plus_buttons = []
         self.minus_buttons = []
 
@@ -34,11 +34,13 @@ class ConfigureNetwork:
             pygame.draw.rect(self.window, colors.foreground_secondary, background_rect, width=1, border_radius=5)
             pygame.draw.line(self.window, colors.foreground, (1020, 118), (1031, 130), 2)
             pygame.draw.line(self.window, colors.foreground, (1031, 118), (1020, 130), 2)
-            TextRenderer.render_text("Configure neural network", 16, colors.foreground, (168, 118), self.window)
+            TextRenderer.render_text("Configure neural network*", 16, colors.foreground, (168, 118), self.window)
+            TextRenderer.render_text("*represents actual layers divided by 3", 12, colors.foreground_secondary, (168, 140), self.window)
 
             # exit condition
             if clicked and InputHandler.check_mouse_hover(exit_rect):
-                return self.depth, self.layer_widths
+                lw = self.layer_widths
+                return [1]+[lw[i]*3 for i in range(1, len(self.layer_widths)-1)]+[1]
 
             w, h, rect = self.recalculate_dimensions()
             self.show_network(w, h, rect)
@@ -145,4 +147,4 @@ class ConfigureNetwork:
 
         for layer in ball_positions:
             for (hor, vert) in layer:
-                pygame.draw.circle(self.window, colors.foreground_secondary, center=(hor, vert), radius=RADIUS_NEURONS)
+                pygame.draw.aacircle(self.window, colors.foreground_secondary_rgb, (hor, vert), RADIUS_NEURONS)

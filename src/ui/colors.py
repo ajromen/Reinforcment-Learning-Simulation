@@ -20,6 +20,7 @@ if darkdetect.isDark():
     bone_rbg_semi_transparent = [151, 151, 151, 60]
     foreground_rgb = [255, 255, 255]
     muscle_rgb_semi_transparent = [97, 47, 47, 80]
+    foreground_secondary_rgb = [156, 156, 156]
 
 else:
     background_primary = "#DDDDDD"
@@ -36,5 +37,4 @@ else:
     bone_rbg_semi_transparent = [161, 161, 161, 60]
     foreground_rgb = [0, 0, 0]
     muscle_rgb_semi_transparent = [144, 59, 59, 80]
-
-
+    foreground_secondary_rgb = [64, 64, 64]
