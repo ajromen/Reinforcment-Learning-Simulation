@@ -384,7 +384,6 @@ class SimulationWindow:
         self.space.remove(self.ground)
         self.space.remove(self.ground_1)
         self._place_ground()
-        self.model.episode_end()
         loss = self.model.episode_end()
         if loss is not None:
             print(loss)
