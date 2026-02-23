@@ -49,6 +49,7 @@ class EpisodeStats:
 class SimulationStats:
     def __init__(self, steps_per_episode, device):
         # per simulation
+        self.loss_per_backprop = []
         self.dist_per_episode = []
         self.time_per_episode = []
         self.rewards_per_episode = []
@@ -74,7 +75,9 @@ class SimulationStats:
         self.activations = 0
         self.is_first_episode = True
 
-    def episode_end(self, steps, final_dist):
+    def episode_end(self, steps, final_dist, loss):
+        if loss is not None:
+            self.loss_per_backprop.append(float(loss))
         final_dist = float((final_dist - WINDOW_WIDTH // 2) / 200)
         dist = self.get_dist_m()
         self.dist_per_episode.append(dist)
@@ -150,6 +153,7 @@ class SimulationStats:
             "simulation_time": time.time() - self.start_time + self.simulation_time,
             "number_of_episodes": self.number_of_episodes,
             "max_dist": self.max_dist,
+            "loss_per_backprop": self.loss_per_backprop,
             "dist_per_episode": self.dist_per_episode,
             "time_per_episode": self.time_per_episode,
             "rewards_per_episode": self.rewards_per_episode,
@@ -175,6 +179,7 @@ class SimulationStats:
         self.number_of_episodes = data["number_of_episodes"]
         self.max_dist = data["max_dist"]
         self.dist_per_episode = data["dist_per_episode"]
+        self.loss_per_backprop = data['loss_per_backprop']
         self.time_per_episode = data["time_per_episode"]
         self.rewards_per_episode = data["rewards_per_episode"]
         self.last_dist_per_episode = data["last_dist_per_episode"]

@@ -376,7 +376,9 @@ class SimulationWindow:
     def restart_episode(self):
         self.creature.restart()
 
-        self.stats.episode_end(self.step, self.curr_center[0])
+        loss = self.model.episode_end()
+        self.stats.episode_end(self.step, self.curr_center[0], loss)
+
         center = self.creature.get_center()
         self.last_center = center
         self.curr_center = center
@@ -384,9 +386,7 @@ class SimulationWindow:
         self.space.remove(self.ground)
         self.space.remove(self.ground_1)
         self._place_ground()
-        loss = self.model.episode_end()
-        if loss is not None:
-            print(loss)
+
         self.progress_graph = self._plot_distance_surface()
         self.step = 0
 

@@ -141,6 +141,7 @@ class PPOAgent(Agent):
         advantages = (rtgs - values).to(self.device)
         # normalizovanje
         advantages = (advantages - advantages.mean()) / (advantages.std() + 1e-8)
+        loss_actor = None
 
         for _ in range(self.k_epochs):
             # actor
@@ -167,18 +168,22 @@ class PPOAgent(Agent):
             loss_critic.backward()
             self.critic_optim.step()
 
+        return loss_actor.detach().cpu().numpy()
+
     def episode_end(self):
         self._add_gae(self.curr_batch)
         # self._calculate_rtg(self.curr_batch)
         self.batches.append(self.curr_batch)
         self.count += 1
+        to_ret = None
 
         if self.count == self.max_batches:
             self.count = 0
-            self._update()
+            to_ret = self._update()
             self.batches.clear()
 
         self.curr_batch = Batch()
+        return to_ret
 
     def _add_gae(self, batch: Batch, lam: float = 0.95):
         gamma = self.discount_factor

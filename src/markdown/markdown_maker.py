@@ -53,7 +53,12 @@ class MarkdownMaker:
         ImageGenerator.generate_graph(self.stats.rewards_per_episode,
                                       self.save_path + self.assets_path + "/rewards.png",
                                       "Rewards per episode",
-                                      "Episode", "Distance")
+                                      "Episode", "Reward")
+
+        ImageGenerator.generate_graph(self.stats.loss_per_backprop,
+                                      self.save_path + self.assets_path + "/loss.png",
+                                      "Loss per backprop",
+                                      "Episode", "Loss")
 
         num_per_batch = ImageGenerator.generate_comparison_graph(self.stats.last_dist_per_episode,
                                                                  self.stats.dist_per_episode,
@@ -145,20 +150,27 @@ class MarkdownMaker:
 
         self.add_image(self.assets_path + "distances_bar.png", "Max reached per batch")
 
-        self.add_h3("Times per episode")
+        self.add_h3("Loss per backprop")
+        self.add_text(
+            "Main metric for determining success/fitness. Tells us how much agent is improving over time."
+            "(Loss is calculated only during backprop)")
+        self.add_image(self.assets_path + "loss.png", "Loss graph")
+
+        self.add_h3("Time per episode")
         self.add_text(
             "Here we can see spikes in time when parameter update is being called and also times when the episode is terminated prematurely."
             "(Letting the simulation run visually will be visible because of the longer time)")
-        self.add_image(self.assets_path + "time.png", "Last distance graph")
-
-        self.add_h3("Activation per episode")
-        self.add_text("Number increases as the muscle is activated more strongly. Per episode average is displayed.")
-        self.add_image(self.assets_path + "activation.png", "Last distance graph")
-        self.add_text("")
+        self.add_image(self.assets_path + "time.png", "Time per episode graph")
 
         self.add_h3("Rewards per episode")
         self.add_text("Main goal of any method maximize rewards. Per episode average is displayed.")
-        self.add_image(self.assets_path + "rewards.png", "Last distance graph")
+        self.add_image(self.assets_path + "rewards.png", "Rewards per episode graph")
+
+        self.add_h3("Activation per episode")
+        self.add_text("Number increases as the muscle is activated more strongly. Per episode average is displayed.")
+        self.add_image(self.assets_path + "activation.png", "Activation per episode graph")
+        self.add_text("")
+
 
         self.add_br()
         self.add_hr()
