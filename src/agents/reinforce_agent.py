@@ -1,15 +1,12 @@
 from pathlib import Path
 from typing import List
 
-import numpy as np
 import torch
 from torch import nn, FloatTensor, Tensor
 import torch.nn.functional as F
 import torch.optim as optim
 
 from src.agents.models.reinforce_policy import ReinforcePolicy
-
-rng = np.random.default_rng()
 
 from src.agents.agent import Agent
 
@@ -64,15 +61,16 @@ directly maximizing expected returns without needing a value function."""
     def step(self, state: list[float]):
         state_tensor = FloatTensor(state).to(self.device)
 
-        mean, std = self.actor(state_tensor)
+        with torch.no_grad():
+            mean, std = self.actor(state_tensor)
 
-        base_dist = torch.distributions.Normal(mean, std)
-        transform = torch.distributions.transforms.TanhTransform()
-        dist = torch.distributions.TransformedDistribution(base_dist, [transform])
+            base_dist = torch.distributions.Normal(mean, std)
+            transform = torch.distributions.transforms.TanhTransform()
+            dist = torch.distributions.TransformedDistribution(base_dist, [transform])
 
-        action = dist.sample()
+            action = dist.sample()
+
         log_prob = dist.log_prob(action).sum(dim=-1)
-
         self.curr_batch.add_log_prob(log_prob)
         return action.detach().cpu().numpy()  # cpu numpy ne zna za gpu
 

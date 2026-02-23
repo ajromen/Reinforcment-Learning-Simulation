@@ -71,9 +71,9 @@ class MarkdownMaker:
         if self.stats.first_episode_data is not None and self.stats.best_episode_data is not None:
             ImageGenerator.generate_episode_comparison_grid(
                 self.stats.first_episode_data.activations_per_neuron[100:161],
-                self.stats.first_episode_data.rewards_per_step[100:161],
+                self.stats.first_episode_data.rewards_per_step,
                 self.stats.best_episode_data.activations_per_neuron[100:161],
-                self.stats.best_episode_data.rewards_per_step[100:161],
+                self.stats.best_episode_data.rewards_per_step,
                 self.save_path + self.assets_path + "/episode_comparison.png",
                 "First vs Best Episode (2s)"
             )

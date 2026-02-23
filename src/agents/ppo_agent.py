@@ -82,16 +82,17 @@ class PPOAgent(Agent):
     def step(self, state: list[float]) -> np.ndarray:
         state_tensor = FloatTensor(state).to(self.device)
 
-        mean, std = self.actor(state_tensor)
+        with torch.no_grad():
+            mean, std = self.actor(state_tensor)
 
-        base_dist = torch.distributions.Normal(mean, std)
-        transform = torch.distributions.transforms.TanhTransform()
-        dist = torch.distributions.TransformedDistribution(base_dist, [transform])
+            base_dist = torch.distributions.Normal(mean, std)
+            transform = torch.distributions.transforms.TanhTransform()
+            dist = torch.distributions.TransformedDistribution(base_dist, [transform])
 
-        action = dist.sample()
-        log_prob = dist.log_prob(action).sum(dim=-1)
+            action = dist.sample()
+            log_prob = dist.log_prob(action).sum(dim=-1)
 
-        value = self.critic(state_tensor).detach()
+            value = self.critic(state_tensor).detach()
 
         self.curr_batch.append(
             Pass(
@@ -130,13 +131,14 @@ class PPOAgent(Agent):
                 old_log_probs.append(p.log_prob)
                 rtgs.append(p.rtg)
 
-        states = torch.stack(states).detach()
-        actions = torch.stack(actions).detach()
-        old_log_probs = torch.stack(old_log_probs).detach()
+        #mozda .detach() ovde
+        states = torch.stack(states).to(self.device)
+        actions = torch.stack(actions).to(self.device)
+        old_log_probs = torch.stack(old_log_probs).to(self.device)
         rtgs = torch.tensor(rtgs, device=self.device)
         values = torch.stack(values).squeeze(-1)
 
-        advantages = (rtgs - values).detach()
+        advantages = (rtgs - values).to(self.device)
         # normalizovanje
         advantages = (advantages - advantages.mean()) / (advantages.std() + 1e-8)
 
@@ -166,7 +168,8 @@ class PPOAgent(Agent):
             self.critic_optim.step()
 
     def episode_end(self):
-        self._calculate_rtg(self.curr_batch)
+        self._add_gae(self.curr_batch)
+        # self._calculate_rtg(self.curr_batch)
         self.batches.append(self.curr_batch)
         self.count += 1
 
@@ -176,6 +179,20 @@ class PPOAgent(Agent):
             self.batches.clear()
 
         self.curr_batch = Batch()
+
+    def _add_gae(self, batch: Batch, lam: float = 0.95):
+        gamma = self.discount_factor
+        advantages = []
+        gae = 0.0
+
+        for t in reversed(range(len(batch.passes))):
+            p = batch.passes[t]
+            v_t = p.value
+            v_next = batch.passes[t + 1].value if t + 1 < len(batch.passes) else 0.0
+            delta = p.reward + gamma * v_next - v_t
+            gae = delta + gamma * lam * gae
+            advantages.insert(0, gae)
+            p.rtg = gae + v_t
 
     def _calculate_rtg(self, batch: Batch):
         G = 0.0

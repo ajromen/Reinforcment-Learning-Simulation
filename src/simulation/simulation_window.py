@@ -8,6 +8,7 @@ from typing import List
 import numpy as np
 import pygame
 import pymunk
+import torch
 from matplotlib import pyplot as plt
 from pygame import Vector2
 from pymunk import pygame_util
@@ -61,6 +62,7 @@ class SimulationWindow:
         self.progress_graph = self._plot_distance_surface()
 
     def start_simple(self):
+        self.randomize_seed()
         clock = pygame.time.Clock()
         i = 0
         while True:
@@ -81,10 +83,21 @@ class SimulationWindow:
             if i % 2 == 0:
                 self.model_step()
 
+            self.move_camera(self.curr_center)
+            self.move_ground()
+
             self.show()
 
             clock.tick(FPS)
             pygame.display.flip()
+
+    def randomize_seed(self, seed):
+        if seed is None:
+            seed = int(time.time())
+        np.random.seed(seed)
+        torch.manual_seed(seed)
+        if torch.cuda.is_available():
+            torch.cuda.manual_seed_all(seed)
 
     def start(self):
         clock = pygame.time.Clock()
@@ -127,6 +140,10 @@ class SimulationWindow:
 
             if i % 2 == 0:
                 self.model_step()
+
+            # nije bitno da li je visual jer kamera odredjuje pod
+            self.move_camera(self.curr_center)
+            self.move_ground()
 
             self.run_pymunk(visual)
             if i % 2 == 0:
@@ -261,9 +278,6 @@ class SimulationWindow:
         return img
 
     def show(self):
-        self.move_camera(self.curr_center)
-        self.move_ground()
-
         self.window.fill(background_secondary)
         self.draw_ground_markers()
         if self.debug_view:
@@ -367,6 +381,8 @@ class SimulationWindow:
         self.last_center = center
         self.curr_center = center
 
+        self.space.remove(self.ground)
+        self.space.remove(self.ground_1)
         self._place_ground()
         self.model.episode_end()
         self.progress_graph = self._plot_distance_surface()
