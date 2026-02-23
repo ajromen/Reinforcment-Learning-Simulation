@@ -7,7 +7,7 @@ class SimulationSettings:
         self.bone_width = 10.0
         self.body_friction = 1.0
         self.body_mass = 0.8
-        self.overlap_allowed = False
+        self.overlap_allowed = True
         self.joint_limits = True
         self.scale = 15
         self.max_motor_force = 4e6

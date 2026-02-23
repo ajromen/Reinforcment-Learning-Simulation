@@ -1,0 +1,215 @@
+{
+    "id": "66b7d989-d8f3-4a0f-bc22-c20eff3cb221",
+    "joints": [
+        {
+            "id": "j0",
+            "x": 9,
+            "y": 18,
+            "bone_ids": [
+                "b5"
+            ]
+        },
+        {
+            "id": "j1",
+            "x": 19,
+            "y": 18,
+            "bone_ids": [
+                "b6"
+            ]
+        },
+        {
+            "id": "j2",
+            "x": 18,
+            "y": 11,
+            "bone_ids": [
+                "b3",
+                "b6"
+            ]
+        },
+        {
+            "id": "j3",
+            "x": 11,
+            "y": 11,
+            "bone_ids": [
+                "b4",
+                "b5"
+            ]
+        },
+        {
+            "id": "j4",
+            "x": 15,
+            "y": 3,
+            "bone_ids": [
+                "b0",
+                "b1",
+                "b2",
+                "b7"
+            ]
+        },
+        {
+            "id": "j5",
+            "x": 15,
+            "y": 8,
+            "bone_ids": [
+                "b3",
+                "b4",
+                "b7"
+            ]
+        },
+        {
+            "id": "j6",
+            "x": 19,
+            "y": 5,
+            "bone_ids": [
+                "b1"
+            ]
+        },
+        {
+            "id": "j7",
+            "x": 11,
+            "y": 5,
+            "bone_ids": [
+                "b2"
+            ]
+        },
+        {
+            "id": "j8",
+            "x": 15,
+            "y": 1,
+            "bone_ids": [
+                "b0"
+            ]
+        }
+    ],
+    "bones": [
+        {
+            "id": "b0",
+            "joint1_id": "j4",
+            "joint2_id": "j8",
+            "muscle_ids": [
+                "m2",
+                "m3"
+            ]
+        },
+        {
+            "id": "b1",
+            "joint1_id": "j4",
+            "joint2_id": "j6",
+            "muscle_ids": [
+                "m1",
+                "m2"
+            ]
+        },
+        {
+            "id": "b2",
+            "joint1_id": "j4",
+            "joint2_id": "j7",
+            "muscle_ids": [
+                "m0",
+                "m3"
+            ]
+        },
+        {
+            "id": "b3",
+            "joint1_id": "j2",
+            "joint2_id": "j5",
+            "muscle_ids": [
+                "m4",
+                "m5",
+                "m8"
+            ]
+        },
+        {
+            "id": "b4",
+            "joint1_id": "j3",
+            "joint2_id": "j5",
+            "muscle_ids": [
+                "m4",
+                "m6",
+                "m7"
+            ]
+        },
+        {
+            "id": "b5",
+            "joint1_id": "j0",
+            "joint2_id": "j3",
+            "muscle_ids": [
+                "m7"
+            ]
+        },
+        {
+            "id": "b6",
+            "joint1_id": "j1",
+            "joint2_id": "j2",
+            "muscle_ids": [
+                "m8"
+            ]
+        },
+        {
+            "id": "b7",
+            "joint1_id": "j4",
+            "joint2_id": "j5",
+            "muscle_ids": [
+                "m0",
+                "m1",
+                "m5",
+                "m6"
+            ]
+        }
+    ],
+    "muscles": [
+        {
+            "id": "m0",
+            "bone1_id": "b2",
+            "bone2_id": "b7"
+        },
+        {
+            "id": "m1",
+            "bone1_id": "b1",
+            "bone2_id": "b7"
+        },
+        {
+            "id": "m2",
+            "bone1_id": "b0",
+            "bone2_id": "b1"
+        },
+        {
+            "id": "m3",
+            "bone1_id": "b0",
+            "bone2_id": "b2"
+        },
+        {
+            "id": "m4",
+            "bone1_id": "b3",
+            "bone2_id": "b4"
+        },
+        {
+            "id": "m5",
+            "bone1_id": "b3",
+            "bone2_id": "b7"
+        },
+        {
+            "id": "m6",
+            "bone1_id": "b4",
+            "bone2_id": "b7"
+        },
+        {
+            "id": "m7",
+            "bone1_id": "b4",
+            "bone2_id": "b5"
+        },
+        {
+            "id": "m8",
+            "bone1_id": "b3",
+            "bone2_id": "b6"
+        }
+    ],
+    "layer_widths": [
+        1,
+        30,
+        30,
+        30,
+        1
+    ],
+    "pretrained": false
+}
