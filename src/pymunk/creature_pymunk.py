@@ -261,7 +261,7 @@ class CreaturePymunk:
 
             inp.extend([rx, ry, vx, vy])
 
-        inp.append(np.clip((GROUND_Y - cy) / GROUND_Y, -1, 1))
+        inp.append(np.clip((GROUND_Y - cy) / self.settings.scale*5, -1, 1))
 
         return np.array(inp)
 

@@ -14,14 +14,16 @@ from src.agents.agent import Agent
 class Batch:
     def __init__(self):
         self.rewards: List[float] = []
-        self.log_probs: List[torch.Tensor] = []
+        self.states: List[torch.Tensor] = []
+        self.actions: List[torch.Tensor] = []
         self.rtgs: List[float] = []
 
     def add_reward(self, reward):
         self.rewards.append(reward)
 
-    def add_log_prob(self, log_prob):
-        self.log_probs.append(log_prob)
+    def add_state_action(self, state, action):
+        self.states.append(state.detach())
+        self.actions.append(action.detach())
 
     def calculate_rtgs(self, discount_factor: float):
         self.rtgs = []
@@ -70,41 +72,53 @@ directly maximizing expected returns without needing a value function."""
 
             action = dist.sample()
 
-        log_prob = dist.log_prob(action).sum(dim=-1)
-        self.curr_batch.add_log_prob(log_prob)
+        self.curr_batch.add_state_action(state_tensor, action)
         return action.detach().cpu().numpy()  # cpu numpy ne zna za gpu
 
     def reward(self, reward):
         self.curr_batch.add_reward(reward)
 
     def _update(self):
-        log_probs = []
+        states = []
+        actions = []
         rtgs = []
 
         for batch in self.batches:
             batch.calculate_rtgs(self.discount_factor)
-            log_probs.extend(batch.log_probs)
+            states.extend(batch.states)
+            actions.extend(batch.actions)
             rtgs.extend(batch.rtgs)
 
-        log_probs = torch.stack(log_probs)
+        states = torch.stack(states).to(self.device)
+        actions = torch.stack(actions).to(self.device)
         rtgs = torch.tensor(rtgs, device=self.device)
         rtgs = (rtgs - rtgs.mean()) / (rtgs.std() + 1e-8)
+
+        mean, std = self.actor(states)
+        base_dist = torch.distributions.Normal(mean, std)
+        transform = torch.distributions.transforms.TanhTransform()
+        dist = torch.distributions.TransformedDistribution(base_dist, [transform])
+        log_probs = dist.log_prob(actions).sum(dim=-1)
 
         loss = -(log_probs * rtgs).mean()
         self.actor_optimizer.zero_grad()
         loss.backward()
         self.actor_optimizer.step()
 
+        return loss.cpu().detach().numpy()
+
     def episode_end(self):
         self.batches.append(self.curr_batch)
         self.count += 1
+        to_ret = None
 
         if self.count == self.max_batches:
             self.count = 0
-            self._update()
+            to_ret = self._update()
             self.batches.clear()
 
         self.curr_batch = Batch()
+        return to_ret
 
     def get_num_of_parameters(self):
         return sum(p.numel() for p in self.actor.parameters())

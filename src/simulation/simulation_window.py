@@ -91,7 +91,7 @@ class SimulationWindow:
             clock.tick(FPS)
             pygame.display.flip()
 
-    def randomize_seed(self, seed):
+    def randomize_seed(self,seed = None):
         if seed is None:
             seed = int(time.time())
         np.random.seed(seed)
@@ -385,6 +385,9 @@ class SimulationWindow:
         self.space.remove(self.ground_1)
         self._place_ground()
         self.model.episode_end()
+        loss = self.model.episode_end()
+        if loss is not None:
+            print(loss)
         self.progress_graph = self._plot_distance_surface()
         self.step = 0
 
