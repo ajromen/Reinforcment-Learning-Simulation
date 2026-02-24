@@ -1,8 +1,10 @@
 # Reinforcment Learning Simulaton
+
 2D locomotion using pygame with pymunk for physics and torch for rl. 
 Inspired by [Evolution - Keiwan Donyagard](https://keiwando.com/evolution/).
 App shows difference between REINFORCE and PPO algorithm (with possibility of adding more algorithms)
 for same learning environment and nn setup.
+
 ---
 ## Requirements
 * `python` ~= 3.13
