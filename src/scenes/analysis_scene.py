@@ -1,6 +1,7 @@
 import os.path
 import sys
 from multiprocessing import Process, Queue
+from queue import Empty
 
 import pygame
 from PyQt6.QtCore import QTimer
@@ -33,6 +34,9 @@ class AnalysisScene:
 
         save = ALT_SAVE_FILE_PATH if creature.pretrained else SAVE_FILE_PATH
         self.save_path = save + str(creature.id) + "/"
+
+        self.timer = QTimer()
+        self.timer.timeout.connect(self._check_queue)
 
         if is_continue:
             self.reinforce_finished()
@@ -74,60 +78,42 @@ class AnalysisScene:
         p = Process(target=reinforce_process,
                     args=(self.queue, self.creature, self.nn_layers, self.save_path, simple, continue_learning,))
         p.start()
-
-        self.timer = QTimer()
-        self.timer.timeout.connect(self._check_queue)
         self.timer.start(1000)
 
-        # self.left.button.setEnabled(False)
-        # self.right.button.setEnabled(False)
 
     def run_ppo(self, simple=False, continue_learning=False):
         p = Process(target=ppo_process,
                     args=(self.queue, self.creature, self.nn_layers, self.save_path, simple, continue_learning,))
         p.start()
-
-        self.timer = QTimer()
-        self.timer.timeout.connect(self._check_queue)
         self.timer.start(1000)
-
-        # self.left.button.setEnabled(False)
-        # self.right.button.setEnabled(False)
 
     def _check_queue(self):
         if not self.queue.empty():
+            try:
+                process = self.queue.get_nowait()
+            except Empty:
+                return
+
             self.timer.stop()
-            process = self.queue.get()
+
             if process == "reinforce":
                 self.reinforce_finished()
             elif process == "ppo":
                 self.ppo_finished()
             elif process == "ppo_simple":
                 pass
-                # self.left.button.setEnabled(True)
-                # self.right.button.setEnabled(False)
             elif process == "reinforce_simple":
                 pass
-                # self.left.button.setEnabled(False)
-                # self.right.button.setEnabled(True)
 
     def ppo_finished(self):
-        # self.left.button.setEnabled(True)
-        # self.right.button.setEnabled(False)
         if os.path.exists(self.save_path + "ppo/summary.md"):
             self.right.load_markdown(self.save_path + "ppo/summary.md")
             return
-        # self.left.button.setEnabled(True)
-        # self.right.button.setEnabled(True)
 
     def reinforce_finished(self):
-        # self.left.button.setEnabled(False)
-        # self.right.button.setEnabled(True)
         if os.path.exists(self.save_path + "reinforce/summary.md"):
             self.left.load_markdown(self.save_path + "reinforce/summary.md")
             return
-        # self.left.button.setEnabled(True)
-        # self.right.button.setEnabled(True)
 
 
 def reinforce_process(queue, creature, nn_layers, save_path, simple=False, continue_learning=False):
@@ -138,11 +124,11 @@ def reinforce_process(queue, creature, nn_layers, save_path, simple=False, conti
         reinforce_window.start()
     else:
         reinforce_window.start_simple()
-    pygame.quit()
     if not simple:
         queue.put("reinforce")
     else:
         queue.put("reinforce_simple")
+    pygame.quit()
 
 
 def ppo_process(queue, creature, nn_layers, save_path, simple=False, continue_learning=False):
@@ -152,8 +138,8 @@ def ppo_process(queue, creature, nn_layers, save_path, simple=False, continue_le
         ppo_window.start()
     else:
         ppo_window.start_simple()
-    pygame.quit()
     if not simple:
         queue.put("ppo")
     else:
         queue.put("ppo_simple")
+    pygame.quit()
